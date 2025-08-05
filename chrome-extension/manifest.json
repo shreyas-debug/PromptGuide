@@ -5,7 +5,8 @@
   "description": "An AI-powered assistant to help you refine your prompts.",
   "permissions": [
     "activeTab",
-    "scripting"
+    "scripting",
+    "storage"
   ],
   "host_permissions": [
     "http://127.0.0.1:5000/"
