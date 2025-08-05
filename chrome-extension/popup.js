@@ -1,121 +1,108 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Select all the UI elements from popup.html
-    const gauntletSelect = document.getElementById('gauntletSelect');
-    const promptInput = document.getElementById('promptInput');
     const evaluateButton = document.getElementById('evaluateButton');
+    const promptInput = document.getElementById('promptInput');
     const resultContent = document.getElementById('resultContent');
     const loader = document.getElementById('loader');
     const evaluationResult = document.getElementById('evaluationResult');
+    const refineButton = document.getElementById('refineButton'); // Get the new button
 
-    let gauntlets = {}; // To store the fetched gauntlet data
-
-    // --- Function to load the list of challenges from your backend ---
-    function loadGauntlets() {
-        fetch('http://127.0.0.1:5000/api/gauntlets')
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`Network response was not ok: ${response.statusText}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                gauntlets = data;
-                gauntletSelect.innerHTML = '<option selected disabled>Select a challenge...</option>';
-                for (const id in gauntlets) {
-                    const option = document.createElement('option');
-                    option.value = id;
-                    option.textContent = gauntlets[id].name;
-                    gauntletSelect.appendChild(option);
-                }
-            })
-            .catch(error => {
-                console.error('Error loading gauntlets:', error);
-                resultContent.style.display = 'block';
-                loader.style.display = 'none';
-                evaluationResult.innerHTML = '<p class="text-danger">Error: Could not connect to the backend. Is it running?</p>';
-            });
+    // --- Variables to store the latest evaluation data ---
+    let latestEvaluation = null;
+    async function checkForInjectedText() {
+        const result = await chrome.storage.local.get(['textToInject']);
+        if (result.textToInject) {
+            promptInput.value = result.textToInject;
+            // Clear the storage so it's not used again
+            await chrome.storage.local.remove(['textToInject']);
+        }
     }
 
-    // --- The main evaluation function, now using async/await for streaming ---
-    async function handleEvaluation() {
-        const selectedGauntletId = gauntletSelect.value;
+    evaluateButton.addEventListener('click', () => {
         const promptText = promptInput.value;
-
-        // Validation to ensure a challenge is selected and a prompt is entered
-        if (!selectedGauntletId || gauntletSelect.selectedIndex === 0) {
-            alert('Please select a challenge first.');
-            return;
-        }
         if (!promptText) {
             alert('Please enter a prompt to evaluate.');
             return;
         }
 
-        // Set up the UI for a loading state
+        // Set up UI for loading
         resultContent.style.display = 'block';
         loader.style.display = 'block';
-        evaluationResult.innerHTML = ''; // Clear previous results
+        evaluationResult.innerHTML = '';
+        refineButton.style.display = 'none'; // Hide refine button during evaluation
 
-        try {
-            // Start the fetch request to the streaming endpoint
-            const response = await fetch('http://127.0.0.1:5000/api/evaluate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    prompt: promptText,
-                    gauntlet_id: selectedGauntletId
-                }),
-            });
+        const apiUrl = 'http://127.0.0.1:5000/api/evaluate';
 
-            // Get the tools to read the incoming stream of data
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder();
-            let fullResponse = '';
-
-            // As soon as we have a reader, hide the initial loader
+        fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt: promptText }),
+        })
+        .then(response => response.json())
+        .then(data => {
             loader.style.display = 'none';
 
-            // Loop to read from the stream until it's finished
-            while (true) {
-                const { value, done } = await reader.read();
-                if (done) break; // Exit the loop when the stream is complete
+            if (data.error) {
+                evaluationResult.innerHTML = `<p class="text-danger">Error: ${data.error}</p>`;
+            } else {
+                const evaluation = JSON.parse(data.evaluation);
 
-                // Decode the chunk of data (which arrives as a Uint8Array)
-                const chunk = decoder.decode(value);
-                // The data is sent in "data: ...\n\n" format. We need to parse this.
-                const lines = chunk.split('\n');
-                for (const line of lines) {
-                    if (line.startsWith('data: ')) {
-                        fullResponse += line.substring(6); // Append the actual content
-                    }
-                }
+                // --- Store the evaluation data ---
+                latestEvaluation = {
+                    original_prompt: promptText,
+                    score: evaluation.final_score,
+                    feedback: evaluation.feedback
+                };
 
-                // Update the UI in real-time with the raw text as it arrives
-                evaluationResult.textContent = fullResponse;
+                // Display the results as before
+                evaluationResult.innerHTML = `
+                    <h4>Score: ${evaluation.final_score} / 100</h4>
+                    <p class="mb-0"><strong>Justification:</strong> ${evaluation.feedback}</p>
+                `;
+
+                // --- Show the Refine button ---
+                refineButton.style.display = 'block';
             }
-
-            // Once the stream is finished, try to parse the complete response as JSON
-            try {
-                const finalJson = JSON.parse(fullResponse);
-                // If successful, format the final output nicely
-                evaluationResult.innerHTML = `<strong>Score:</strong> ${finalJson.score}/10<br><strong>Justification:</strong> ${finalJson.justification}`;
-            } catch (e) {
-                // If it's not perfect JSON at the end, that's okay.
-                // The raw text is already displayed, which is a good fallback.
-                console.log("Stream finished. Final content was not perfect JSON, but that's okay.");
-            }
-
-        } catch (error) {
-            // Handle any errors during the fetch/streaming process
-            console.error('Streaming Error:', error);
+        })
+        .catch(error => {
             loader.style.display = 'none';
-            evaluationResult.innerHTML = '<p class="text-danger">An error occurred while streaming the evaluation.</p>';
-        }
-    }
+            console.error('Evaluation Error:', error);
+            evaluationResult.innerHTML = '<p class="text-danger">An error occurred during evaluation.</p>';
+        });
+    });
 
-    // --- Attach the async function to the button's click event ---
-    evaluateButton.addEventListener('click', handleEvaluation);
+    // --- NEW EVENT LISTENER FOR THE REFINE BUTTON ---
+    refineButton.addEventListener('click', () => {
+        if (!latestEvaluation) return;
 
-    // --- Initial action: Load the gauntlets when the popup is opened ---
-    loadGauntlets();
+        refineButton.textContent = 'Refining...'; // Provide user feedback
+        refineButton.disabled = true;
+
+        const refineApiUrl = 'http://127.0.0.1:5000/api/refine';
+
+        fetch(refineApiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(latestEvaluation), // Send the stored evaluation data
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                alert(`Refinement Error: ${data.error}`);
+            } else {
+                // --- Update the textarea with the refined prompt ---
+                promptInput.value = data.refined_prompt;
+            }
+        })
+        .catch(error => {
+            console.error('Refinement Error:', error);
+            alert('An error occurred during refinement.');
+        })
+        .finally(() => {
+            // Reset the button state
+            refineButton.textContent = 'Refine the Prompt';
+            refineButton.disabled = false;
+            refineButton.style.display = 'none'; // Hide after use
+        });
+    });
+    checkForInjectedText();
 });
