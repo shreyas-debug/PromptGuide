@@ -29,22 +29,50 @@ GAUNTLETS = {
 }
 
 def run_gauntlet_evaluation(gauntlet_id, user_prompt):
+    # if gauntlet_id not in GAUNTLETS:
+    #     return {"error": "Invalid gauntlet ID."}
+    # if not user_prompt:
+    #     return {"error": "Prompt cannot be empty."}
+    #
+    # gauntlet = GAUNTLETS[gauntlet_id]
+    # evaluator_prompt = f"""
+    # {gauntlet['system_prompt']}.
+    #
+    # User's Prompt: "{user_prompt}"
+    # """
+    #
+    # try:
+    #     model = genai.GenerativeModel('gemini-1.5-flash-latest')
+    #     response = model.generate_content(evaluator_prompt)
+    #     return {"evaluation": response.text}
+    # except Exception as e:
+    #     print(f"An error occurred during API call: {e}")
+    #     return {"error": "Failed to get a response from the Gemini API."}
+    """
+        This function calls the Gemini API with stream=True and yields each chunk.
+        This is a "generator" function.
+        """
     if gauntlet_id not in GAUNTLETS:
-        return {"error": "Invalid gauntlet ID."}
-    if not user_prompt:
-        return {"error": "Prompt cannot be empty."}
+        yield "data: {\"error\": \"Invalid gauntlet ID.\"}\n\n"
+        return
 
     gauntlet = GAUNTLETS[gauntlet_id]
     evaluator_prompt = f"""
-    {gauntlet['system_prompt']}
+        {gauntlet['system_prompt']}
 
-    User's Prompt: "{user_prompt}"
-    """
+        User's Prompt: "{user_prompt}"
+        """
 
     try:
         model = genai.GenerativeModel('gemini-1.5-flash-latest')
-        response = model.generate_content(evaluator_prompt)
-        return {"evaluation": response.text}
+        # The key change: stream=True
+        responses = model.generate_content(evaluator_prompt, stream=True)
+
+        # Yield each chunk of the response as it comes in
+        for response in responses:
+            # We wrap the chunk in a "data: ...\n\n" format for Server-Sent Events
+            yield f"data: {response.text}\n\n"
+
     except Exception as e:
-        print(f"An error occurred during API call: {e}")
-        return {"error": "Failed to get a response from the Gemini API."}
+        print(f"An error occurred during API stream: {e}")
+        yield f"data: {{\"error\": \"Failed to stream response from Gemini API.\"}}\n\n"
