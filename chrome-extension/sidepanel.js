@@ -1,38 +1,53 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // Select all UI elements
     const evaluateButton = document.getElementById('evaluateButton');
     const promptInput = document.getElementById('promptInput');
     const resultContent = document.getElementById('resultContent');
     const loader = document.getElementById('loader');
     const evaluationResult = document.getElementById('evaluationResult');
-    const refineButton = document.getElementById('refineButton'); // Get the new button
+    const refineButton = document.getElementById('refineButton');
+    const copyButton = document.getElementById('copyButton'); // New copy button
 
-    // --- Variables to store the latest evaluation data ---
     let latestEvaluation = null;
+
+    // --- NEW: Function to handle copying text to clipboard ---
+    copyButton.addEventListener('click', () => {
+        const textToCopy = promptInput.value;
+        if (textToCopy) {
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                // Visual feedback that copy was successful
+                copyButton.innerHTML = 'Copied!';
+                setTimeout(() => {
+                    copyButton.innerHTML = `
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z"/>
+                            <path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z"/>
+                        </svg>
+                    `;
+                }, 1000);
+            }).catch(err => console.error('Failed to copy text: ', err));
+        }
+    });
+
+    // Function to check for text passed from the content script
     async function checkForInjectedText() {
         const result = await chrome.storage.local.get(['textToInject']);
         if (result.textToInject) {
             promptInput.value = result.textToInject;
-            // Clear the storage so it's not used again
             await chrome.storage.local.remove(['textToInject']);
         }
     }
 
     evaluateButton.addEventListener('click', () => {
         const promptText = promptInput.value;
-        if (!promptText) {
-            alert('Please enter a prompt to evaluate.');
-            return;
-        }
+        if (!promptText) return alert('Please enter a prompt.');
 
-        // Set up UI for loading
         resultContent.style.display = 'block';
         loader.style.display = 'block';
         evaluationResult.innerHTML = '';
-        refineButton.style.display = 'none'; // Hide refine button during evaluation
+        refineButton.style.display = 'none';
 
-        const apiUrl = 'http://127.0.0.1:5000/api/evaluate';
-
-        fetch(apiUrl, {
+        fetch('http://127.0.0.1:5000/api/evaluate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ prompt: promptText }),
@@ -40,69 +55,54 @@ document.addEventListener('DOMContentLoaded', () => {
         .then(response => response.json())
         .then(data => {
             loader.style.display = 'none';
-
             if (data.error) {
                 evaluationResult.innerHTML = `<p class="text-danger">Error: ${data.error}</p>`;
             } else {
                 const evaluation = JSON.parse(data.evaluation);
-
-                // --- Store the evaluation data ---
                 latestEvaluation = {
                     original_prompt: promptText,
                     score: evaluation.final_score,
                     feedback: evaluation.feedback
                 };
-
-                // Display the results as before
                 evaluationResult.innerHTML = `
                     <h4>Score: ${evaluation.final_score} / 100</h4>
-                    <p class="mb-0"><strong>Justification:</strong> ${evaluation.feedback}</p>
+                    <p class="mb-0"><strong>Feedback:</strong> ${evaluation.feedback}</p>
                 `;
-
-                // --- Show the Refine button ---
                 refineButton.style.display = 'block';
             }
         })
         .catch(error => {
             loader.style.display = 'none';
             console.error('Evaluation Error:', error);
-            evaluationResult.innerHTML = '<p class="text-danger">An error occurred during evaluation.</p>';
         });
     });
 
-    // --- NEW EVENT LISTENER FOR THE REFINE BUTTON ---
     refineButton.addEventListener('click', () => {
         if (!latestEvaluation) return;
 
-        refineButton.textContent = 'Refining...'; // Provide user feedback
+        refineButton.textContent = 'Refining...';
         refineButton.disabled = true;
 
-        const refineApiUrl = 'http://127.0.0.1:5000/api/refine';
-
-        fetch(refineApiUrl, {
+        fetch('http://127.0.0.1:5000/api/refine', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(latestEvaluation), // Send the stored evaluation data
+            body: JSON.stringify(latestEvaluation),
         })
         .then(response => response.json())
         .then(data => {
             if (data.error) {
                 alert(`Refinement Error: ${data.error}`);
             } else {
-                // --- Update the textarea with the refined prompt ---
                 promptInput.value = data.refined_prompt;
             }
         })
-        .catch(error => {
-            console.error('Refinement Error:', error);
-            alert('An error occurred during refinement.');
-        })
+        .catch(error => console.error('Refinement Error:', error))
         .finally(() => {
-            // Reset the button state
-            refineButton.textContent = 'Refine the Prompt';
+            refineButton.textContent = 'Refine this Prompt';
             refineButton.disabled = false;
-            refineButton.style.display = 'none'; // Hide after use
+            refineButton.style.display = 'none';
         });
     });
+
     checkForInjectedText();
 });

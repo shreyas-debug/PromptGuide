@@ -1,44 +1,50 @@
-// A single, reusable "Refine" button for the entire page
-console.log("✅ Prompt Gauntlet: Content Script is now running!");
-let refineButton = null;
 let debounceTimer;
+let refineButton = null;
 
-// This function creates the button if it doesn't exist
-function createRefineButton() {
-    if (refineButton) return; // Only create one button
+// This function creates the single button instance for the page
+function initializeRefineButton() {
+    if (document.getElementById('pg-refine-button')) return;
 
     refineButton = document.createElement('button');
-    refineButton.id = 'prompt-gauntlet-refine-btn';
-    refineButton.textContent = 'Refine';
+    refineButton.id = 'pg-refine-button';
+    refineButton.textContent = 'Refine ✨';
     refineButton.style.display = 'none'; // Initially hidden
     document.body.appendChild(refineButton);
-}
 
-// This function shows the button next to the element the user is typing in
-function showRefineButton(targetElement) {
-    const rect = targetElement.getBoundingClientRect();
-    refineButton.style.display = 'block';
-    refineButton.style.top = `${window.scrollY + rect.top - 30}px`; // Position above the text field
-    refineButton.style.left = `${window.scrollX + rect.left}px`;
-
-    // Remove any previous click listener to avoid duplicates
-    const newButton = refineButton.cloneNode(true);
-    refineButton.parentNode.replaceChild(newButton, refineButton);
-    refineButton = newButton;
-
-    // Add a new click listener
+    // Add the click listener ONCE when the button is created
     refineButton.addEventListener('click', () => {
-        const text = targetElement.isContentEditable ? targetElement.textContent : targetElement.value;
-        // Send a message to the background script with the text
-        chrome.runtime.sendMessage({ action: 'openPopupWithText', text: text });
+        // --- CHECKPOINT 1 ---
+        console.log("✅ Refine button clicked! Attempting to send message.");
+
+        const textToRefine = refineButton.dataset.textToRefine; // Get text from data attribute
+        if (textToRefine && chrome.runtime?.id) {
+            chrome.runtime.sendMessage({ action: "openPopupWithText", text: textToRefine });
+        } else {
+            console.error("❌ Could not send message. Context may be invalidated.");
+        }
         refineButton.style.display = 'none'; // Hide after click
     });
 }
 
-// --- Main Logic ---
-createRefineButton(); // Create the button as soon as the script loads
+// This function shows and positions the button
+function showRefineButton(targetElement) {
+    if (!refineButton) return;
 
-// Listen for typing
+    const text = targetElement.isContentEditable ? targetElement.textContent : targetElement.value;
+    refineButton.dataset.textToRefine = text; // Store the text on the button itself
+
+    const rect = targetElement.getBoundingClientRect();
+    refineButton.style.display = 'block';
+
+    // Updated positioning logic for 'position: fixed'
+    refineButton.style.top = `${rect.top - 30}px`; // Position above the text field
+    refineButton.style.left = `${rect.left}px`;
+}
+
+// --- Main Logic ---
+initializeRefineButton(); // Create the button on script load
+
+// Listen for typing on the page
 document.addEventListener('input', (event) => {
     const target = event.target;
     const isEditable = target.tagName.toLowerCase() === 'textarea' || target.isContentEditable;
@@ -50,15 +56,17 @@ document.addEventListener('input', (event) => {
             if (text.length > 15) {
                 showRefineButton(target);
             } else {
-                if(refineButton) refineButton.style.display = 'none';
+                if (refineButton) refineButton.style.display = 'none';
             }
-        }, 500); // Show button after 0.5s of paused typing
+        }, 500);
     }
 });
 
-// Hide button when the user clicks away
-document.addEventListener('click', (event) => {
-    if (refineButton && event.target.id !== 'prompt-gauntlet-refine-btn') {
-        refineButton.style.display = 'none';
+// Hide button when clicking away
+document.addEventListener('mousedown', (event) => {
+    if (refineButton && refineButton.style.display === 'block') {
+        if (!refineButton.contains(event.target) && !event.target.isContentEditable && event.target.tagName.toLowerCase() !== 'textarea') {
+            refineButton.style.display = 'none';
+        }
     }
 });
