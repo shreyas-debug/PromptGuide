@@ -14,12 +14,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         // After the panel is open, store the text.
         // This ensures the panel is ready to receive the text.
         chrome.storage.local.set({ textToInject: request.text }, () => {
-          // Optional: Send a message back to the side panel if it needs to update instantly
           // For now, the sidepanel.js will check for this text on its own when it loads.
         });
       });
     }
   }
-  // Return true to indicate you wish to send a response asynchronously (good practice)
+  // Return true to indicate to send a response asynchronously
   return true;
 });

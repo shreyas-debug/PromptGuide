@@ -1,23 +1,21 @@
-/* --- START OF FIX --- */
-/* We are adding the color variable definitions here */
+
 :root {
     --bg-light: #F8F9FA;
     --border-color: #DEE2E6;
     --text-primary: #212529;
     --text-secondary: #6C757D;
-    --blue-primary: #495867; /* Blue-Gray for headers */
-    --blue-secondary: #577399; /* A slightly lighter blue for buttons */
-    --blue-accent: #BDD5EA;   /* A very light blue for backgrounds */
+    --blue-primary: #495867;
+    --blue-secondary: #577399;
+    --blue-accent: #BDD5EA;
 }
-/* --- END OF FIX --- */
 
 
 #pg-refine-button {
     position: fixed;
     z-index: 99999;
-    background-color: var(--blue-secondary); /* Now this variable will work */
+    background-color: var(--blue-secondary);
     color: white;
-    border: 1px solid var(--blue-primary); /* And this one */
+    border: 1px solid var(--blue-primary);
     border-radius: 6px;
     padding: 4px 10px;
     font-size: 13px;

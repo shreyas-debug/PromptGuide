@@ -3,9 +3,9 @@
     --border-color: #DEE2E6;
     --text-primary: #212529;
     --text-secondary: #6C757D;
-    --blue-primary: #495867; /* Blue-Gray for headers */
-    --blue-secondary: #577399; /* A slightly lighter blue for buttons */
-    --blue-accent: #BDD5EA;   /* A very light blue for backgrounds */
+    --blue-primary: #495867;
+    --blue-secondary: #577399;
+    --blue-accent: #BDD5EA;
 }
 
 body, html {
@@ -21,7 +21,7 @@ body, html {
     display: flex;
     flex-direction: column;
     height: 100%;
-    min-height: 100vh; /* Ensure it fills the viewport height */
+    min-height: 100vh;
 }
 
 .header {
@@ -135,77 +135,4 @@ textarea {
 
 .loader::before {
     content: 'Evaluating...';
-}
-
-/* --- New Styles for Comparison View --- */
-.comparison-grid {
-    display: flex;
-    gap: 1rem;
-    padding: 1rem;
-}
-.comparison-col {
-    flex: 1;
-    min-width: 0; /* Prevents flexbox overflow */
-}
-.comparison-col h6 {
-    text-align: center;
-    color: var(--text-secondary);
-    margin-bottom: 0.5rem;
-}
-.footer {
-    padding: 1rem;
-    border-top: 1px solid var(--border-color);
-}
-.btn-back {
-    background: none;
-    border: none;
-    color: var(--blue-secondary);
-    font-weight: 600;
-    cursor: pointer;
-}
-.btn-back:hover {
-    text-decoration: underline;
-}
-.btn-copy {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    background: #fff;
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    cursor: pointer;
-    opacity: 0.6;
-    transition: opacity 0.2s;
-}
-.btn-copy:hover {
-    opacity: 1;
-}
-
-/* --- New Styles for Stats Section --- */
-.stats-area {
-    padding: 0 1rem 1rem 1rem;
-}
-.stats-area h6 {
-    color: var(--text-secondary);
-    margin-bottom: 0.5rem;
-}
-.stats-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.9rem;
-}
-.stats-table th, .stats-table td {
-    border: 1px solid var(--border-color);
-    padding: 0.5rem;
-    text-align: center;
-}
-.stats-table th {
-    background-color: #f8f9fa;
-    font-weight: 600;
-}
-.similarity-score {
-    margin-top: 1rem;
-    text-align: center;
-    font-size: 0.9rem;
-    color: var(--text-secondary);
 }

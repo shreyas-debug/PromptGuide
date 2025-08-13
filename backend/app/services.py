@@ -1,14 +1,10 @@
 import csv
 import os
-import json
 from datetime import datetime
-
 import google.generativeai as genai
 from dotenv import load_dotenv
 from groq import Groq
-from nltk import word_tokenize
 from sentence_transformers import SentenceTransformer, util
-from textstat import textstat
 
 from .evaluation_metrics import (
     calculate_reading_ease,
@@ -84,7 +80,6 @@ def run_metric_based_evaluation(user_prompt):
         "feedback": " ".join(feedback) or "This is a well-structured prompt!"
     }
 
-    # The result is returned directly. This function is fast and does not need to stream.
     return final_result
 
 
