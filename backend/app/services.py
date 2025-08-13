@@ -1,9 +1,15 @@
+import csv
 import os
 import json
+from datetime import datetime
+
 import google.generativeai as genai
 from dotenv import load_dotenv
+from groq import Groq
+from nltk import word_tokenize
+from sentence_transformers import SentenceTransformer, util
+from textstat import textstat
 
-# We are now only importing the metric calculation functions
 from .evaluation_metrics import (
     calculate_reading_ease,
     calculate_lexical_diversity,
@@ -14,6 +20,26 @@ from .evaluation_metrics import (
 
 load_dotenv(dotenv_path='.env')
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
+groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+print("Loading embedding model for semantic similarity...")
+embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
+print("Embedding model loaded.")
+
+# --- Gauntlets as Refinement Goals ---
+GAUNTLETS = {
+    "improve-clarity": {
+        "name": "Improve Clarity & Specificity",
+        "instruction": "Focus on making the prompt's language simpler, clearer, and more direct. Add specific details and constraints if they are missing."
+    },
+    "add-chain-of-thought": {
+        "name": "Add Chain-of-Thought",
+        "instruction": "Modify the prompt to include a chain-of-thought or a step-by-step reasoning process that guides the AI."
+    },
+    "convert-to-few-shot": {
+        "name": "Convert to Few-Shot",
+        "instruction": "Rewrite the prompt to include at least two clear examples (shots) that demonstrate the desired output format."
+    }
+}
 
 def run_metric_based_evaluation(user_prompt):
     """
@@ -59,45 +85,64 @@ def run_metric_based_evaluation(user_prompt):
     }
 
     # The result is returned directly. This function is fast and does not need to stream.
-    return {"evaluation": json.dumps(final_result)}
+    return final_result
 
 
-def refine_prompt_with_llm(original_prompt, score, feedback):
-    """
-    Uses an LLM to refine a user's prompt based on the metric-based feedback.
-    """
-    print(f"Refining prompt with score: {score} and feedback: {feedback}")
+def log_statistical_results(original_prompt, refined_prompt, original_score, refined_score):
+    filepath = 'statistical_results.csv'
+    headers = [
+        'timestamp', 'original_prompt', 'refined_prompt',
+        'original_score', 'refined_score',
+        'semantic_similarity'
+    ]
 
-    # This is the "meta-prompt" - a prompt for the AI about another prompt.
-    # It's engineered to be very specific about the task.
-    refinement_prompt = f"""
-    You are an expert prompt engineer. Your task is to rewrite and improve a user's prompt based on an automated evaluation it received.
+    embedding_original = embedding_model.encode(original_prompt)
+    embedding_refined = embedding_model.encode(refined_prompt)
+    similarity = util.cos_sim(embedding_original, embedding_refined).item()
 
-    The user's original prompt was:
-    ---
-    {original_prompt}
-    ---
+    row_data = {
+        'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        'original_prompt': original_prompt,
+        'refined_prompt': refined_prompt,
+        'original_score': original_score,
+        'refined_score': refined_score,
+        'semantic_similarity': f"{similarity:.3f}"
+    }
+    file_exists = os.path.isfile(filepath)
+    with open(filepath, 'a', newline='', encoding='utf-8') as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=headers)
+        if not file_exists:
+            writer.writeheader()
+        writer.writerow(row_data)
+    print(f"✅ Statistical results logged to {filepath}")
 
-    It received a score of {score}/100, with the following feedback:
-    ---
-    {feedback}
-    ---
 
+def refine_prompt_with_llm(original_prompt, score, feedback, gauntlet_id):
+    gauntlet = GAUNTLETS.get(gauntlet_id)
+    if not gauntlet:
+        return {"error": "Invalid refinement goal."}
+
+    refinement_meta_prompt = f"""
+    You are an expert prompt engineer. Your task is to rewrite a user's prompt based on an evaluation and a specific goal.
+    Original Prompt: "{original_prompt}"
+    Evaluation Score: {score}/100
+    Evaluation Feedback: "{feedback}"
+    Your Specific Goal: {gauntlet['instruction']}
     Instructions:
-    1.  Carefully read the original prompt and the feedback.
-    2.  Rewrite the prompt to address the feedback. For example, if the feedback mentions a lack of action verbs or constraints, add them.
-    3.  The new prompt should be clear, specific, and follow best practices.
-    4.  Do NOT add any commentary or explanation.
-    5.  Return ONLY the refined prompt text.
-
+    - Rewrite the prompt to address the feedback AND achieve the specific goal.
+    - Return ONLY the refined prompt text.
     Refined Prompt:
     """
-
     try:
-        model = genai.GenerativeModel('gemini-1.5-flash-latest')
-        response = model.generate_content(refinement_prompt)
-        # We add a .strip() to remove any leading/trailing whitespace
-        return {"refined_prompt": response.text.strip()}
+        groq_response = groq_client.chat.completions.create(
+            model="llama3-8b-8192", messages=[{"role": "user", "content": refinement_meta_prompt}], max_tokens=500
+        )
+        refined_prompt = groq_response.choices[0].message.content.strip()
+
+        refined_evaluation = run_metric_based_evaluation(refined_prompt)
+        log_statistical_results(original_prompt, refined_prompt, score, refined_evaluation['final_score'])
+
+        return {"refined_prompt": refined_prompt}
     except Exception as e:
-        print(f"An error occurred during prompt refinement: {e}")
-        return {"error": "Failed to get a response from the Gemini API during refinement."}
+        print(f"An error occurred during refinement: {e}")
+        return {"error": "Failed to get a response from the AI."}

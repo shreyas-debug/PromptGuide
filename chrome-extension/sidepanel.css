@@ -46,7 +46,7 @@ body, html {
 }
 
 .prompt-area {
-    position: relative; /* Needed for positioning the copy button */
+    position: relative;
     margin-bottom: 1rem;
 }
 
@@ -61,7 +61,112 @@ textarea {
     min-height: 100px;
 }
 
-.copy-btn {
+.action-buttons {
+    display: flex;
+    gap: 0.5rem;
+    align-items: stretch;
+}
+
+.btn-copy {
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    padding: 0 0.75rem;
+    transition: background-color .2s;
+}
+.btn-copy:hover {
+    background-color: var(--bg-light);
+}
+
+.btn-copy svg {
+    color: var(--text-secondary);
+}
+
+.btn-evaluate, .btn-refine {
+    border: none;
+    padding: 10px;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.btn-evaluate {
+    flex-grow: 1;
+    background-color: var(--blue-secondary);
+    color: white;
+}
+
+.btn-evaluate:hover {
+    background-color: var(--blue-primary);
+}
+
+.btn-refine {
+    width: 100%;
+    background-color: var(--blue-accent);
+    color: var(--blue-primary);
+    margin-top: 1rem;
+}
+
+.result-area {
+    padding: 1rem;
+    border-top: 1px solid var(--border-color);
+    flex-grow: 1;
+    overflow-y: auto;
+}
+
+#evaluationResult {
+    background-color: white;
+    padding: 1rem;
+    border-radius: 6px;
+}
+
+.btn-refine:hover {
+    background-color: #a8c8e3;
+}
+
+.loader {
+    text-align: center;
+    color: var(--text-secondary);
+}
+
+.loader::before {
+    content: 'Evaluating...';
+}
+
+/* --- New Styles for Comparison View --- */
+.comparison-grid {
+    display: flex;
+    gap: 1rem;
+    padding: 1rem;
+}
+.comparison-col {
+    flex: 1;
+    min-width: 0; /* Prevents flexbox overflow */
+}
+.comparison-col h6 {
+    text-align: center;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+}
+.footer {
+    padding: 1rem;
+    border-top: 1px solid var(--border-color);
+}
+.btn-back {
+    background: none;
+    border: none;
+    color: var(--blue-secondary);
+    font-weight: 600;
+    cursor: pointer;
+}
+.btn-back:hover {
+    text-decoration: underline;
+}
+.btn-copy {
     position: absolute;
     top: 8px;
     right: 8px;
@@ -72,59 +177,35 @@ textarea {
     opacity: 0.6;
     transition: opacity 0.2s;
 }
-
-.copy-btn:hover {
+.btn-copy:hover {
     opacity: 1;
 }
 
-.btn-evaluate, .btn-refine {
-    width: 100%;
-    border: none;
-    padding: 10px;
-    border-radius: 6px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background-color 0.2s;
+/* --- New Styles for Stats Section --- */
+.stats-area {
+    padding: 0 1rem 1rem 1rem;
 }
-
-.btn-evaluate {
-    background-color: var(--blue-secondary);
-    color: white;
-}
-
-.btn-evaluate:hover {
-    background-color: var(--blue-primary);
-}
-
-.result-area {
-    padding: 1rem;
-    border-top: 1px solid var(--border-color);
-    flex-grow: 1; /* This makes the result area fill remaining space */
-    overflow-y: auto; /* Add scroll if content is too long */
-}
-
-#evaluationResult {
-    background-color: white;
-    padding: 1rem;
-    border-radius: 6px;
-}
-
-.btn-refine {
-    background-color: var(--blue-accent);
-    color: var(--blue-primary);
-    margin-top: 1rem;
-}
-
-.btn-refine:hover {
-    background-color: #a8c8e3;
-}
-
-.loader {
-    /* Simple text loader */
-    text-align: center;
+.stats-area h6 {
     color: var(--text-secondary);
+    margin-bottom: 0.5rem;
 }
-
-.loader::before {
-    content: 'Evaluating...';
+.stats-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+.stats-table th, .stats-table td {
+    border: 1px solid var(--border-color);
+    padding: 0.5rem;
+    text-align: center;
+}
+.stats-table th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+}
+.similarity-score {
+    margin-top: 1rem;
+    text-align: center;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
 }

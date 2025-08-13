@@ -1,108 +1,115 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Select all UI elements
+    // --- Get all UI elements ---
     const evaluateButton = document.getElementById('evaluateButton');
     const promptInput = document.getElementById('promptInput');
-    const resultContent = document.getElementById('resultContent');
-    const loader = document.getElementById('loader');
     const evaluationResult = document.getElementById('evaluationResult');
+    const refineSection = document.getElementById('refineSection');
+    const gauntletSelect = document.getElementById('gauntletSelect');
     const refineButton = document.getElementById('refineButton');
-    const copyButton = document.getElementById('copyButton'); // New copy button
+    const refineLoader = document.getElementById('refineLoader');
+    const refineResult = document.getElementById('refineResult');
+    const refinedPrompt = document.getElementById('refinedPrompt');
+    const copyButton = document.getElementById('copyButton');
 
-    let latestEvaluation = null;
+    let latestEvaluationData = null;
 
-    // --- NEW: Function to handle copying text to clipboard ---
-    copyButton.addEventListener('click', () => {
-        const textToCopy = promptInput.value;
-        if (textToCopy) {
-            navigator.clipboard.writeText(textToCopy).then(() => {
-                // Visual feedback that copy was successful
-                copyButton.innerHTML = 'Copied!';
-                setTimeout(() => {
-                    copyButton.innerHTML = `
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                            <path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z"/>
-                            <path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z"/>
-                        </svg>
-                    `;
-                }, 1000);
-            }).catch(err => console.error('Failed to copy text: ', err));
-        }
-    });
-
-    // Function to check for text passed from the content script
-    async function checkForInjectedText() {
-        const result = await chrome.storage.local.get(['textToInject']);
-        if (result.textToInject) {
-            promptInput.value = result.textToInject;
-            await chrome.storage.local.remove(['textToInject']);
-        }
+    function loadGauntlets() {
+        fetch('http://127.0.0.1:5000/api/gauntlets')
+            .then(response => response.json())
+            .then(data => {
+                if (gauntletSelect) {
+                    gauntletSelect.innerHTML = '';
+                    for (const id in data) {
+                        const option = document.createElement('option');
+                        option.value = id;
+                        option.textContent = data[id].name;
+                        gauntletSelect.appendChild(option);
+                    }
+                }
+            })
+            .catch(error => console.error('Error loading gauntlets:', error));
     }
 
     evaluateButton.addEventListener('click', () => {
         const promptText = promptInput.value;
         if (!promptText) return alert('Please enter a prompt.');
 
-        resultContent.style.display = 'block';
-        loader.style.display = 'block';
-        evaluationResult.innerHTML = '';
-        refineButton.style.display = 'none';
+        evaluationResult.style.display = 'block';
+        evaluationResult.innerHTML = '<div class="loader">Evaluating...</div>';
+        refineSection.style.display = 'none';
 
         fetch('http://127.0.0.1:5000/api/evaluate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prompt: promptText }),
+            body: JSON.stringify({ user_prompt: promptText }),
         })
         .then(response => response.json())
         .then(data => {
-            loader.style.display = 'none';
-            if (data.error) {
-                evaluationResult.innerHTML = `<p class="text-danger">Error: ${data.error}</p>`;
-            } else {
-                const evaluation = JSON.parse(data.evaluation);
-                latestEvaluation = {
-                    original_prompt: promptText,
-                    score: evaluation.final_score,
-                    feedback: evaluation.feedback
-                };
-                evaluationResult.innerHTML = `
-                    <h4>Score: ${evaluation.final_score} / 100</h4>
-                    <p class="mb-0"><strong>Feedback:</strong> ${evaluation.feedback}</p>
-                `;
-                refineButton.style.display = 'block';
+            if (data.error || !data.evaluation) {
+                evaluationResult.innerHTML = `<p class="text-danger">Error: ${data.error || 'Invalid response.'}</p>`;
+                return;
             }
+
+            const evalData = data.evaluation;
+            latestEvaluationData = {
+                original_prompt: promptText,
+                score: evalData.final_score,
+                feedback: evalData.feedback
+            };
+            evaluationResult.innerHTML = `
+                <h4>Score: ${evalData.final_score} / 100</h4>
+                <p><strong>Feedback:</strong> ${evalData.feedback}</p>
+            `;
+            refineSection.style.display = 'block';
+            refineResult.style.display = 'none';
+            refineButton.style.display = 'block';
         })
-        .catch(error => {
-            loader.style.display = 'none';
-            console.error('Evaluation Error:', error);
-        });
+        .catch(error => console.error('Evaluation Error:', error));
     });
 
     refineButton.addEventListener('click', () => {
-        if (!latestEvaluation) return;
+        if (!latestEvaluationData) return;
 
-        refineButton.textContent = 'Refining...';
-        refineButton.disabled = true;
+        const selectedGauntletId = gauntletSelect.value;
+        if (!selectedGauntletId) return alert('Please select a refinement goal.');
+        latestEvaluationData.gauntlet_id = selectedGauntletId;
+
+        refineButton.style.display = 'none';
+        refineLoader.style.display = 'block';
+        refineResult.style.display = 'none';
 
         fetch('http://127.0.0.1:5000/api/refine', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(latestEvaluation),
+            body: JSON.stringify(latestEvaluationData),
         })
         .then(response => response.json())
         .then(data => {
+            refineLoader.style.display = 'none';
             if (data.error) {
-                alert(`Refinement Error: ${data.error}`);
+                evaluationResult.innerHTML += `<p class="text-danger mt-2">Refinement Error: ${data.error}</p>`;
             } else {
-                promptInput.value = data.refined_prompt;
+                refinedPrompt.value = data.refined_prompt;
+                refineResult.style.display = 'block';
             }
-        })
-        .catch(error => console.error('Refinement Error:', error))
-        .finally(() => {
-            refineButton.textContent = 'Refine this Prompt';
-            refineButton.disabled = false;
-            refineButton.style.display = 'none';
         });
     });
 
+    copyButton.addEventListener('click', () => {
+        navigator.clipboard.writeText(refinedPrompt.value).then(() => {
+            copyButton.textContent = 'Copied!';
+            setTimeout(() => { copyButton.textContent = 'Copy'; }, 1000);
+        });
+    });
+
+    async function checkForInjectedText() {
+        const result = await chrome.storage.local.get(['textToInject']);
+        if (result.textToInject && promptInput) {
+            promptInput.value = result.textToInject;
+            chrome.storage.local.remove(['textToInject']);
+        }
+    }
+
+    loadGauntlets();
     checkForInjectedText();
 });
