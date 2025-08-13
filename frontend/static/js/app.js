@@ -1,5 +1,4 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // --- Get all UI elements ---
     const evaluateButton = document.getElementById('evaluateButton');
     const promptInput = document.getElementById('promptInput');
     const evaluationResult = document.getElementById('evaluationResult');

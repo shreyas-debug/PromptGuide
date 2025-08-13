@@ -31,20 +31,19 @@ function showRefineButton(targetElement) {
     if (!refineButton) return;
 
     const text = targetElement.isContentEditable ? targetElement.textContent : targetElement.value;
-    refineButton.dataset.textToRefine = text; // Store the text on the button itself
+    refineButton.dataset.textToRefine = text;
 
     const rect = targetElement.getBoundingClientRect();
     refineButton.style.display = 'block';
 
-    // Updated positioning logic for 'position: fixed'
-    refineButton.style.top = `${rect.top - 30}px`; // Position above the text field
+    refineButton.style.top = `${rect.top - 30}px`;
     refineButton.style.left = `${rect.left}px`;
 }
 
 // --- Main Logic ---
-initializeRefineButton(); // Create the button on script load
+initializeRefineButton();
 
-// Listen for typing on the page
+// Listener for typing on the page
 document.addEventListener('input', (event) => {
     const target = event.target;
     const isEditable = target.tagName.toLowerCase() === 'textarea' || target.isContentEditable;
