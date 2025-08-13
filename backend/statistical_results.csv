@@ -1,0 +1,8 @@
+timestamp,original_prompt,refined_prompt,original_score,refined_score,semantic_similarity
+2025-08-13 16:04:27,what is gravity,"""Summarize gravity in a brief and simple paragraph, focusing on its definition and fundamental concept.""",40,60,0.571
+2025-08-13 16:04:57,what is gravity,"Here is the refined prompt:
+
+""Summarize the concept of gravity in a step-by-step explanation, starting with the historical context of its discovery, followed by a detailed explanation of the underlying physical principles, and concluding with a concise summary of the current understanding of gravity in modern physics. Please format your response as a numbered list with 5-7 points.""",40,85,0.532
+2025-08-13 16:21:06,what is gravity,"Here is the rewritten prompt:
+
+""Summarize gravity in 50 words or less, and generate a step-by-step explanation of how it affects an object's motion in the format of a numbered list (3-5 points). Format the answer in the style of a scientific article.""",40,96,0.472
