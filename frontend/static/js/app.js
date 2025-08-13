@@ -1,85 +1,115 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // --- NEW: Select all the new elements ---
-    const gauntletSelect = document.getElementById('gauntletSelect');
-    const gauntletDescription = document.getElementById('gauntletDescription');
+    // --- Get all UI elements ---
     const evaluateButton = document.getElementById('evaluateButton');
     const promptInput = document.getElementById('promptInput');
-    const responseDiv = document.getElementById('response');
-    const resultContent = document.getElementById('resultContent');
-    const loader = document.getElementById('loader');
+    const evaluationResult = document.getElementById('evaluationResult');
+    const refineSection = document.getElementById('refineSection');
+    const gauntletSelect = document.getElementById('gauntletSelect');
+    const refineButton = document.getElementById('refineButton');
+    const refineLoader = document.getElementById('refineLoader');
+    const refineResult = document.getElementById('refineResult');
+    const refinedPrompt = document.getElementById('refinedPrompt');
+    const copyButton = document.getElementById('copyButton');
 
-    let gauntlets = {}; // To store the fetched gauntlet data
+    let latestEvaluationData = null;
 
-    // --- NEW: Function to load gauntlets from the backend ---
     function loadGauntlets() {
         fetch('http://127.0.0.1:5000/api/gauntlets')
             .then(response => response.json())
             .then(data => {
-                gauntlets = data;
-                gauntletSelect.innerHTML = '<option selected disabled>Select a challenge...</option>';
-                for (const id in gauntlets) {
-                    const option = document.createElement('option');
-                    option.value = id;
-                    option.textContent = gauntlets[id].name;
-                    gauntletSelect.appendChild(option);
+                if (gauntletSelect) {
+                    gauntletSelect.innerHTML = '';
+                    for (const id in data) {
+                        const option = document.createElement('option');
+                        option.value = id;
+                        option.textContent = data[id].name;
+                        gauntletSelect.appendChild(option);
+                    }
                 }
             })
             .catch(error => console.error('Error loading gauntlets:', error));
     }
 
-    // --- NEW: Event listener for the dropdown ---
-    gauntletSelect.addEventListener('change', () => {
-        const selectedId = gauntletSelect.value;
-        if (gauntlets[selectedId]) {
-            gauntletDescription.textContent = gauntlets[selectedId].description;
-        }
-    });
-
     evaluateButton.addEventListener('click', () => {
-        const prompt = promptInput.value;
-        const gauntlet_id = gauntletSelect.value; // Get the selected gauntlet ID
+        const promptText = promptInput.value;
+        if (!promptText) return alert('Please enter a prompt.');
 
-        if (!gauntlet_id || gauntlet_id === "Select a challenge...") {
-            alert('Please select a challenge first.');
-            return;
-        }
-        if (!prompt) {
-            alert('Please enter a prompt.');
-            return;
-        }
-
-        responseDiv.style.display = 'flex';
-        loader.style.display = 'block';
-        resultContent.innerHTML = '';
+        evaluationResult.style.display = 'block';
+        evaluationResult.innerHTML = '<div class="loader">Evaluating...</div>';
+        refineSection.style.display = 'none';
 
         fetch('http://127.0.0.1:5000/api/evaluate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            // --- NEW: Send the gauntlet_id along with the prompt ---
-            body: JSON.stringify({ prompt: prompt, gauntlet_id: gauntlet_id }),
+            body: JSON.stringify({ user_prompt: promptText }),
         })
         .then(response => response.json())
         .then(data => {
-            loader.style.display = 'none';
-            if (data.error) {
-                resultContent.textContent = `Error: ${data.error}`;
-            } else {
-                const cleanedString = data.evaluation.replace(/```json/g, '').replace(/```/g, '').trim();
-                try {
-                    const evaluation = JSON.parse(cleanedString);
-                    resultContent.innerHTML = `<strong>Score:</strong> ${evaluation.score}/10<br><strong>Justification:</strong> ${evaluation.justification}`;
-                } catch (e) {
-                    resultContent.textContent = cleanedString;
-                }
+            if (data.error || !data.evaluation) {
+                evaluationResult.innerHTML = `<p class="text-danger">Error: ${data.error || 'Invalid response.'}</p>`;
+                return;
             }
+
+            const evalData = data.evaluation;
+            latestEvaluationData = {
+                original_prompt: promptText,
+                score: evalData.final_score,
+                feedback: evalData.feedback
+            };
+            evaluationResult.innerHTML = `
+                <h4>Score: ${evalData.final_score} / 100</h4>
+                <p><strong>Feedback:</strong> ${evalData.feedback}</p>
+            `;
+            refineSection.style.display = 'block';
+            refineResult.style.display = 'none';
+            refineButton.style.display = 'block';
         })
-        .catch(error => {
-            loader.style.display = 'none';
-            console.error('Error:', error);
-            resultContent.textContent = 'An error occurred while connecting to the backend.';
+        .catch(error => console.error('Evaluation Error:', error));
+    });
+
+    refineButton.addEventListener('click', () => {
+        if (!latestEvaluationData) return;
+
+        const selectedGauntletId = gauntletSelect.value;
+        if (!selectedGauntletId) return alert('Please select a refinement goal.');
+        latestEvaluationData.gauntlet_id = selectedGauntletId;
+
+        refineButton.style.display = 'none';
+        refineLoader.style.display = 'block';
+        refineResult.style.display = 'none';
+
+        fetch('http://127.0.0.1:5000/api/refine', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(latestEvaluationData),
+        })
+        .then(response => response.json())
+        .then(data => {
+            refineLoader.style.display = 'none';
+            if (data.error) {
+                evaluationResult.innerHTML += `<p class="text-danger mt-2">Refinement Error: ${data.error}</p>`;
+            } else {
+                refinedPrompt.value = data.refined_prompt;
+                refineResult.style.display = 'block';
+            }
         });
     });
 
-    // --- NEW: Load the gauntlets when the page loads ---
+    copyButton.addEventListener('click', () => {
+        navigator.clipboard.writeText(refinedPrompt.value).then(() => {
+            copyButton.textContent = 'Copied!';
+            setTimeout(() => { copyButton.textContent = 'Copy'; }, 1000);
+        });
+    });
+
+    async function checkForInjectedText() {
+        const result = await chrome.storage.local.get(['textToInject']);
+        if (result.textToInject && promptInput) {
+            promptInput.value = result.textToInject;
+            chrome.storage.local.remove(['textToInject']);
+        }
+    }
+
     loadGauntlets();
+    checkForInjectedText();
 });

@@ -1,53 +1,41 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Prompt Gauntlet</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="static/css/style.css">
 </head>
-<body class="bg-light">
-    <div class="container mt-5">
-        <h1 class="text-center">Prompt Refinement Gauntlet</h1>
-        <hr>
-        <!-- --- NEW: Gauntlet Selection --- -->
-        <div class="row justify-content-center">
-            <div class="col-md-8">
-                <div class="mb-3">
-                    <label for="gauntletSelect" class="form-label"><strong>Choose your Challenge:</strong></label>
-                    <select id="gauntletSelect" class="form-select"></select>
-                </div>
-                <div id="gauntletDescription" class="alert alert-info">
-                    Please select a gauntlet to see its description.
+<body>
+    <div class="container">
+        <div class="header">
+            <h5>Prompt Gauntlet</h5>
+            <p>Evaluate and Refine Your Prompts</p>
+        </div>
+        <div class="main-content">
+            <textarea id="promptInput" rows="6" placeholder="Enter a prompt to evaluate..."></textarea>
+            <button id="evaluateButton" class="btn-evaluate">Evaluate Prompt</button>
+        </div>
+
+        <div id="evaluationResult" class="result-area" style="display:none;"></div>
+
+        <div id="refineSection" class="result-area" style="display:none;">
+
+            <div class="goal-selector">
+                <label for="gauntletSelect">Refinement Goal:</label>
+                <select id="gauntletSelect" class="form-select"></select>
+            </div>
+
+            <button id="refineButton" class="btn-refine">Refine</button>
+
+            <div id="refineLoader" class="loader" style="display:none;"></div>
+            <div id="refineResult" style="display:none;">
+                <p><strong>Refined Prompt:</strong></p>
+                <div class="prompt-area">
+                    <textarea id="refinedPrompt" rows="6" readonly></textarea>
+                    <button id="copyButton" class="btn-copy" title="Copy">Copy</button>
                 </div>
             </div>
         </div>
-
-        <div class="row justify-content-center mt-3">
-            <div class="col-md-8">
-                <div class="mb-3">
-                    <textarea id="promptInput" class="form-control" rows="5" placeholder="Enter your prompt here..."></textarea>
-                </div>
-                <div class="d-grid">
-                     <button id="evaluateButton" class="btn btn-primary">Evaluate Prompt</button>
-                </div>
-            </div>
         </div>
-
-        <div id="response" class="row justify-content-center mt-4" style="display: none;">
-             <div class="col-md-8">
-                <div class="p-3 bg-white border rounded shadow-sm">
-                    <h5 class="mb-3">Evaluation Result:</h5>
-                    <div id="loader" class="text-center" style="display: none;">
-                        <div class="spinner-border" role="status">
-                            <span class="visually-hidden">Loading...</span>
-                        </div>
-                    </div>
-                    <div id="resultContent" style="white-space: pre-wrap; word-wrap: break-word;"></div>
-                </div>
-             </div>
-        </div>
-    </div>
     <script src="static/js/app.js"></script>
 </body>
 </html>
