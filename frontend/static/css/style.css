@@ -134,5 +134,5 @@ textarea {
 }
 
 .loader::before {
-    content: 'Evaluating...';
+    content: '';
 }
