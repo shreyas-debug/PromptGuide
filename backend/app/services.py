@@ -125,8 +125,7 @@ def refine_prompt_with_llm(original_prompt, score, feedback, gauntlet_id):
     Your Specific Goal: {gauntlet['instruction']}
     Instructions:
     - Rewrite the prompt to address the feedback AND achieve the specific goal.
-    - Return ONLY the refined prompt text.
-    Refined Prompt:
+    - Return ONLY the refined prompt text in quotes nothing extra.
     """
     try:
         groq_response = groq_client.chat.completions.create(
