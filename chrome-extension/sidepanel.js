@@ -34,7 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!promptText) return alert('Please enter a prompt.');
 
         evaluationResult.style.display = 'block';
-        evaluationResult.innerHTML = '<div class="loader">Evaluating...</div>';
+        evaluationResult.innerHTML = '<div class="loader"></div>';
         refineSection.style.display = 'none';
 
         fetch('http://127.0.0.1:5000/api/evaluate', {

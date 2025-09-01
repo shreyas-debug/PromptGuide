@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Prompt Gauntlet",
+  "name": "Prompt Guide",
   "version": "1.0",
   "description": "An AI-powered assistant to help you refine your prompts.",
   "permissions": [
@@ -14,7 +14,7 @@
     "default_path": "sidepanel.html"
   },
   "action": {
-    "default_title": "Open Prompt Gauntlet"
+    "default_title": "Open Prompt Guide"
   },
   "background": {
     "service_worker": "background.js"
