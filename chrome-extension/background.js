@@ -14,7 +14,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         // After the panel is open, store the text.
         // This ensures the panel is ready to receive the text.
         chrome.storage.local.set({ textToInject: request.text }, () => {
-          // For now, the sidepanel.js will check for this text on its own when it loads.
         });
       });
     }

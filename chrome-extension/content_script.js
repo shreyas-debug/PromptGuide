@@ -40,7 +40,6 @@ function showRefineButton(targetElement) {
     refineButton.style.left = `${rect.left}px`;
 }
 
-// --- Main Logic ---
 initializeRefineButton();
 
 // Listener for typing on the page
