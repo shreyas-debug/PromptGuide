@@ -149,5 +149,38 @@ prompt-gauntlet-project/
 5. Select a refinement goal from the available gauntlets
 6. Generate an improved version of your prompt
 
+## GitHub Pages Deployment
+
+The frontend of this project is automatically deployed to GitHub Pages using GitHub Actions.
+
+### Accessing the Deployed Site
+
+Once deployed, your site will be available at:
+```
+https://shreyas-debug.github.io/PromptGuide/
+```
+
+### How It Works
+
+1. **Automatic Deployment**: The GitHub Actions workflow automatically deploys the frontend whenever you push to the `master` branch.
+
+2. **Backend Configuration**: The frontend is configured to connect to `http://127.0.0.1:5000` by default. To use the deployed frontend with a backend:
+   - Deploy your backend to a hosting service (Heroku, Railway, Render, etc.)
+   - Update the `config.json` file in the `frontend` directory with your backend URL
+   - The frontend will automatically use the configured API URL
+
+3. **Local Development**: When running locally, the frontend will automatically connect to your local backend server.
+
+### Manual Deployment
+
+If you need to manually trigger a deployment:
+1. Go to the "Actions" tab in your GitHub repository
+2. Select "Deploy to GitHub Pages" workflow
+3. Click "Run workflow"
+
+### Note
+
+The GitHub Pages deployment only includes the frontend. The backend must be deployed separately to a service that supports Python/Flask applications.
+
 
 *Built with ❤️ for the prompt engineering community*

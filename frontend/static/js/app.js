@@ -12,8 +12,41 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let latestEvaluationData = null;
 
+    // Get API URL from config or use default
+    let API_BASE_URL = 'http://127.0.0.1:5000';
+    async function loadConfig() {
+        try {
+            const response = await fetch('config.json');
+            if (response.ok) {
+                const config = await response.json();
+                if (config.apiUrl) {
+                    API_BASE_URL = config.apiUrl;
+                }
+            }
+        } catch (error) {
+            // Config file not found, use default
+            console.log('Using default API URL:', API_BASE_URL);
+        }
+    }
+
+    function showBackendError() {
+        evaluationResult.innerHTML = `
+            <div style="padding: 1rem; background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 6px; color: #856404;">
+                <h4>⚠️ Backend Not Available</h4>
+                <p>To use this application, you need to run the backend server locally:</p>
+                <ol style="text-align: left; margin: 1rem 0;">
+                    <li>Navigate to the <code>backend</code> directory</li>
+                    <li>Activate your virtual environment</li>
+                    <li>Run <code>python run.py</code></li>
+                    <li>Refresh this page</li>
+                </ol>
+                <p><strong>API URL:</strong> <code>${API_BASE_URL}</code></p>
+            </div>
+        `;
+    }
+
     function loadGauntlets() {
-        fetch('http://127.0.0.1:5000/api/gauntlets')
+        fetch(`${API_BASE_URL}/api/gauntlets`)
             .then(response => response.json())
             .then(data => {
                 if (gauntletSelect) {
@@ -26,7 +59,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
             })
-            .catch(error => console.error('Error loading gauntlets:', error));
+            .catch(error => {
+                console.error('Error loading gauntlets:', error);
+                showBackendError();
+            });
     }
 
     evaluateButton.addEventListener('click', () => {
@@ -37,7 +73,7 @@ document.addEventListener('DOMContentLoaded', () => {
         evaluationResult.innerHTML = '<div class="loader">Evaluating...</div>';
         refineSection.style.display = 'none';
 
-        fetch('http://127.0.0.1:5000/api/evaluate', {
+        fetch(`${API_BASE_URL}/api/evaluate`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ user_prompt: promptText }),
@@ -63,7 +99,10 @@ document.addEventListener('DOMContentLoaded', () => {
             refineResult.style.display = 'none';
             refineButton.style.display = 'block';
         })
-        .catch(error => console.error('Evaluation Error:', error));
+        .catch(error => {
+            console.error('Evaluation Error:', error);
+            showBackendError();
+        });
     });
 
     refineButton.addEventListener('click', () => {
@@ -77,7 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
         refineLoader.style.display = 'block';
         refineResult.style.display = 'none';
 
-        fetch('http://127.0.0.1:5000/api/refine', {
+        fetch(`${API_BASE_URL}/api/refine`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(latestEvaluationData),
@@ -91,6 +130,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 refinedPrompt.value = data.refined_prompt;
                 refineResult.style.display = 'block';
             }
+        })
+        .catch(error => {
+            refineLoader.style.display = 'none';
+            console.error('Refinement Error:', error);
+            showBackendError();
         });
     });
 
@@ -102,13 +146,24 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     async function checkForInjectedText() {
-        const result = await chrome.storage.local.get(['textToInject']);
-        if (result.textToInject && promptInput) {
-            promptInput.value = result.textToInject;
-            chrome.storage.local.remove(['textToInject']);
+        try {
+            if (typeof chrome !== 'undefined' && chrome.storage) {
+                const result = await chrome.storage.local.get(['textToInject']);
+                if (result.textToInject && promptInput) {
+                    promptInput.value = result.textToInject;
+                    chrome.storage.local.remove(['textToInject']);
+                }
+            }
+        } catch (error) {
+            // Chrome extension APIs not available (e.g., on GitHub Pages)
+            console.log('Chrome extension APIs not available');
         }
     }
 
-    loadGauntlets();
-    checkForInjectedText();
+    // Initialize
+    (async () => {
+        await loadConfig();
+        loadGauntlets();
+        checkForInjectedText();
+    })();
 });
