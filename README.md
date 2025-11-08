@@ -192,11 +192,27 @@ If you need to manually trigger a deployment:
 
 ### Troubleshooting
 
-If deployment fails with "Get Pages site failed":
-- Ensure GitHub Pages is enabled in repository Settings → Pages
-- Make sure the source is set to "GitHub Actions" (not "Deploy from a branch")
-- Check that your repository is public (or you have a paid GitHub plan for private repos)
-- Verify the workflow has proper permissions (should be automatic)
+If deployment fails with "Get Pages site failed" or "Resource not accessible by integration":
+
+1. **Enable GitHub Pages** (if not already done):
+   - Go to Settings → Pages
+   - Set Source to "GitHub Actions"
+   - Click Save
+
+2. **Check Repository Workflow Permissions**:
+   - Go to Settings → Actions → General
+   - Scroll to "Workflow permissions"
+   - Select "Read and write permissions" (not "Read repository contents and packages permissions")
+   - Click Save
+
+3. **Verify Repository Settings**:
+   - Make sure your repository is public (or you have a paid GitHub plan for private repos)
+   - Ensure GitHub Pages is enabled in Settings → Pages
+
+4. **Check Actions Logs**:
+   - Go to the Actions tab
+   - Click on the failed workflow run
+   - Review the error messages for specific issues
 
 ### Note
 
