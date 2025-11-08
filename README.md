@@ -153,6 +153,18 @@ prompt-gauntlet-project/
 
 The frontend of this project is automatically deployed to GitHub Pages using GitHub Actions.
 
+### ⚠️ IMPORTANT: Enable GitHub Pages First
+
+Before the deployment can work, you **must** enable GitHub Pages in your repository settings:
+
+1. Go to your repository: https://github.com/shreyas-debug/PromptGuide
+2. Click on **Settings** (top menu)
+3. Click on **Pages** (left sidebar)
+4. Under **"Build and deployment"** → **"Source"**, select **"GitHub Actions"**
+5. Click **Save**
+
+**Note:** If you don't see the Pages option in Settings, your repository might be private. GitHub Pages for private repositories requires a GitHub Pro, Team, or Enterprise account.
+
 ### Accessing the Deployed Site
 
 Once deployed, your site will be available at:
@@ -177,6 +189,14 @@ If you need to manually trigger a deployment:
 1. Go to the "Actions" tab in your GitHub repository
 2. Select "Deploy to GitHub Pages" workflow
 3. Click "Run workflow"
+
+### Troubleshooting
+
+If deployment fails with "Get Pages site failed":
+- Ensure GitHub Pages is enabled in repository Settings → Pages
+- Make sure the source is set to "GitHub Actions" (not "Deploy from a branch")
+- Check that your repository is public (or you have a paid GitHub plan for private repos)
+- Verify the workflow has proper permissions (should be automatic)
 
 ### Note
 
