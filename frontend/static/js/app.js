@@ -30,17 +30,29 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function showBackendError() {
+        const isLocalhost = API_BASE_URL.includes('127.0.0.1') || API_BASE_URL.includes('localhost');
         evaluationResult.innerHTML = `
             <div style="padding: 1rem; background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 6px; color: #856404;">
                 <h4>⚠️ Backend Not Available</h4>
-                <p>To use this application, you need to run the backend server locally:</p>
+                ${isLocalhost ? `
+                <p><strong>For Local Development:</strong></p>
                 <ol style="text-align: left; margin: 1rem 0;">
                     <li>Navigate to the <code>backend</code> directory</li>
                     <li>Activate your virtual environment</li>
                     <li>Run <code>python run.py</code></li>
                     <li>Refresh this page</li>
                 </ol>
-                <p><strong>API URL:</strong> <code>${API_BASE_URL}</code></p>
+                <hr style="margin: 1rem 0; border-color: #ffc107;">
+                <p><strong>For Production (Deployed Backend):</strong></p>
+                <p>If you've deployed your backend, update <code>config.json</code> in the frontend directory with your backend URL:</p>
+                <pre style="background: #f8f9fa; padding: 0.5rem; border-radius: 4px; overflow-x: auto;"><code>{
+  "apiUrl": "https://your-backend-url.com"
+}</code></pre>
+                ` : `
+                <p><strong>Current API URL:</strong></strong> <code>${API_BASE_URL}</code></p>
+                <p>Please verify that your backend is running and accessible at this URL.</p>
+                `}
+                <p style="margin-top: 1rem; font-size: 0.9em;"><strong>Note:</strong> The backend must be deployed separately (GitHub Pages only serves static files).</p>
             </div>
         `;
     }
