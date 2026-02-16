@@ -342,7 +342,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 reasoningToggle.classList.remove('hidden');
                 stepsContainer.classList.add('collapsed');
                 toggleReasoningBtn.querySelector('.toggle-icon').textContent = '▶';
-                toggleReasoningBtn.childNodes[1].textContent = ' View refinement reasoning';
+                toggleReasoningBtn.querySelector('span:last-child').textContent = 'View AI reasoning';
             }
         } catch (err) {
             scoreFeedback.textContent = `Agent error: ${err.message}`;
@@ -373,7 +373,7 @@ document.addEventListener('DOMContentLoaded', () => {
     toggleReasoningBtn.addEventListener('click', () => {
         const isHidden = stepsContainer.classList.toggle('collapsed');
         toggleReasoningBtn.querySelector('.toggle-icon').textContent = isHidden ? '▶' : '▼';
-        toggleReasoningBtn.childNodes[1].textContent = isHidden ? ' View refinement reasoning' : ' Hide refinement reasoning';
+        toggleReasoningBtn.querySelector('span:last-child').textContent = isHidden ? 'View AI reasoning' : 'Hide AI reasoning';
     });
 
     // --- Copy ---
