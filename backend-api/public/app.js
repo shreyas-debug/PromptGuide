@@ -229,7 +229,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const offset = circumference - (score / 100) * circumference;
         scoreCircle.style.strokeDashoffset = offset;
 
-        const color = score >= 80 ? 'var(--success)' : score >= 50 ? 'var(--warning)' : 'var(--danger)';
+        const color = score >= 80 ? 'var(--green)' : score >= 50 ? 'var(--warning)' : 'var(--danger)';
         scoreCircle.style.stroke = color;
         scoreNumber.style.color = color;
 
