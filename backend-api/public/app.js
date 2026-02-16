@@ -388,6 +388,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Helpers ---
     function showFinalResult(text) {
         refinedPrompt.value = text;
+        // Auto-resize textarea to fit content
+        refinedPrompt.style.height = 'auto';
+        refinedPrompt.style.height = refinedPrompt.scrollHeight + 'px';
         finalResult.classList.remove('hidden');
         finalResult.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }

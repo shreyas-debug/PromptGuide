@@ -511,6 +511,8 @@ textarea[readonly] {
 .result-card textarea {
     border-color: rgba(34, 197, 94, .2);
     background: rgba(34, 197, 94, .04);
+    overflow: hidden;
+    resize: none;
 }
 
 .result-card textarea:focus {
