@@ -196,16 +196,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // Load gauntlets
     fetch(`${API_BASE}/api/gauntlets`)
         .then(r => r.json())
-        .then(gauntlets => {
-            gauntlets.forEach(g => {
+        .then(data => {
+            // API returns { id: { name }, ... } object
+            Object.entries(data).forEach(([id, info]) => {
                 const opt = document.createElement('option');
-                opt.value = g.id;
-                opt.textContent = g.name;
+                opt.value = id;
+                opt.textContent = info.name;
                 gauntletSelect.appendChild(opt);
             });
         })
         .catch(() => {
-            // Fallback gauntlets
             ['improve-clarity', 'add-role-context', 'add-chain-of-thought', 'structure-output'].forEach(id => {
                 const opt = document.createElement('option');
                 opt.value = id;
@@ -378,9 +378,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Copy ---
     copyBtn.addEventListener('click', () => {
+        const label = document.getElementById('copyLabel');
         navigator.clipboard.writeText(refinedPrompt.value).then(() => {
-            copyBtn.textContent = '✅ Copied!';
-            setTimeout(() => { copyBtn.textContent = '📋 Copy'; }, 1500);
+            label.textContent = 'Copied!';
+            setTimeout(() => { label.textContent = 'Copy'; }, 1500);
         });
     });
 
