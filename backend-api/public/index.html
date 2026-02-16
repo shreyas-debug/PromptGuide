@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PromptGuide — AI Prompt Refinement</title>
+    <meta name="description"
+        content="PromptGuide evaluates and refines your AI prompts using an agentic loop. Get better results from ChatGPT, Claude, Gemini and more.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/style.css">
+</head>
+
+<body>
+    <!-- === HERO / HEADER === -->
+    <header class="hero">
+        <div class="hero-glow"></div>
+        <div class="hero-content">
+            <div class="logo">
+                <span class="logo-icon">🧭</span>
+                <span class="logo-text">PromptGuide</span>
+            </div>
+            <p class="hero-tagline">Evaluate &amp; refine your AI prompts with an <strong>agentic loop</strong></p>
+        </div>
+    </header>
+
+    <!-- === MAIN APP === -->
+    <main class="app-container">
+        <!-- LEFT: Input + Controls -->
+        <section class="panel panel-input">
+            <h2>Your Prompt</h2>
+            <textarea id="promptInput" rows="6" placeholder="Paste or type your prompt here…"></textarea>
+
+            <div class="btn-row">
+                <button id="evaluateBtn" class="btn btn-primary">Evaluate</button>
+                <button id="autoRefineBtn" class="btn btn-accent" disabled>⚡ Auto-Refine</button>
+                <button id="stopBtn" class="btn btn-stop hidden">■ Stop</button>
+            </div>
+
+            <!-- Refine Controls -->
+            <div id="refineControls" class="refine-controls hidden">
+                <div class="ctrl-group">
+                    <label for="gauntletSelect">Refinement Goal</label>
+                    <select id="gauntletSelect" class="select"></select>
+                </div>
+                <div class="ctrl-group">
+                    <label for="targetScore">Target Score: <span id="targetScoreValue">80</span></label>
+                    <input id="targetScore" type="range" min="60" max="100" value="80" class="range-slider">
+                </div>
+                <button id="singleRefineBtn" class="btn btn-secondary">Refine Once</button>
+            </div>
+        </section>
+
+        <!-- CENTRE: Score -->
+        <section class="panel panel-score hidden" id="scorePanel">
+            <div class="score-ring-wrap">
+                <svg class="score-ring" viewBox="0 0 120 120">
+                    <circle class="score-ring-bg" cx="60" cy="60" r="52" />
+                    <circle id="scoreCircle" class="score-ring-progress" cx="60" cy="60" r="52" />
+                </svg>
+                <div class="score-value">
+                    <span id="scoreNumber">0</span>
+                    <span class="score-label">/ 100</span>
+                </div>
+            </div>
+            <div id="scoreFeedback" class="score-feedback"></div>
+            <div id="scoreBreakdown" class="score-breakdown"></div>
+        </section>
+
+        <!-- RIGHT: Result + Reasoning -->
+        <section class="panel panel-result">
+            <!-- Final result -->
+            <div id="finalResult" class="final-result hidden">
+                <h3>✅ Refined Prompt</h3>
+                <textarea id="refinedPrompt" rows="6" readonly></textarea>
+                <div class="result-actions">
+                    <button id="copyBtn" class="btn btn-icon">📋 Copy</button>
+                </div>
+            </div>
+
+            <!-- Reasoning toggle -->
+            <div id="reasoningToggle" class="reasoning-toggle hidden">
+                <button id="toggleReasoningBtn" class="btn-reasoning-toggle">
+                    <span class="toggle-icon">▶</span> View refinement reasoning
+                </button>
+            </div>
+
+            <!-- Steps / reasoning cards -->
+            <div id="stepsContainer" class="steps-container"></div>
+        </section>
+    </main>
+
+    <!-- === FOOTER === -->
+    <footer class="footer">
+        <p>Built by <strong>Shreyas</strong> · MSc Project 2025 · <a href="https://github.com/shreyas-debug/PromptGuide"
+                target="_blank" rel="noopener">GitHub</a></p>
+    </footer>
+
+    <script src="/app.js"></script>
+</body>
+
+</html>
