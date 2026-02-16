@@ -8,6 +8,8 @@ PromptGuide addresses a critical gap in prompt engineering: the lack of objectiv
 
 The system features a two-stage approach: first, a local, rule-based engine provides immediate, metric-based scoring on criteria like clarity, specificity, and actionability. Then, a context-aware AI agent leverages this feedback to generate improved prompts tailored to specific refinement goals.
 
+Live demo: https://prompt-guide-ten.vercel.app/
+
 ## How It Works
 
 ### Two-Stage User Workflow
@@ -152,71 +154,5 @@ prompt-gauntlet-project/
 ## GitHub Pages Deployment
 
 The frontend of this project is automatically deployed to GitHub Pages using GitHub Actions.
-
-### ⚠️ IMPORTANT: Enable GitHub Pages First
-
-Before the deployment can work, you **must** enable GitHub Pages in your repository settings:
-
-1. Go to your repository: https://github.com/shreyas-debug/PromptGuide
-2. Click on **Settings** (top menu)
-3. Click on **Pages** (left sidebar)
-4. Under **"Build and deployment"** → **"Source"**, select **"GitHub Actions"**
-5. Click **Save**
-
-**Note:** If you don't see the Pages option in Settings, your repository might be private. GitHub Pages for private repositories requires a GitHub Pro, Team, or Enterprise account.
-
-### Accessing the Deployed Site
-
-Once deployed, your site will be available at:
-```
-https://shreyas-debug.github.io/PromptGuide/
-```
-
-### How It Works
-
-1. **Automatic Deployment**: The GitHub Actions workflow automatically deploys the frontend whenever you push to the `master` branch.
-
-2. **Backend Configuration**: The frontend is configured to connect to `http://127.0.0.1:5000` by default. To use the deployed frontend with a backend:
-   - Deploy your backend to a hosting service (Heroku, Railway, Render, etc.)
-   - Update the `config.json` file in the `frontend` directory with your backend URL
-   - The frontend will automatically use the configured API URL
-
-3. **Local Development**: When running locally, the frontend will automatically connect to your local backend server.
-
-### Manual Deployment
-
-If you need to manually trigger a deployment:
-1. Go to the "Actions" tab in your GitHub repository
-2. Select "Deploy to GitHub Pages" workflow
-3. Click "Run workflow"
-
-### Troubleshooting
-
-If deployment fails with "Get Pages site failed" or "Resource not accessible by integration":
-
-1. **Enable GitHub Pages** (if not already done):
-   - Go to Settings → Pages
-   - Set Source to "GitHub Actions"
-   - Click Save
-
-2. **Check Repository Workflow Permissions**:
-   - Go to Settings → Actions → General
-   - Scroll to "Workflow permissions"
-   - Select "Read and write permissions" (not "Read repository contents and packages permissions")
-   - Click Save
-
-3. **Verify Repository Settings**:
-   - Make sure your repository is public (or you have a paid GitHub plan for private repos)
-   - Ensure GitHub Pages is enabled in Settings → Pages
-
-4. **Check Actions Logs**:
-   - Go to the Actions tab
-   - Click on the failed workflow run
-   - Review the error messages for specific issues
-
-### Note
-
-The GitHub Pages deployment only includes the frontend. The backend must be deployed separately to a service that supports Python/Flask applications.
-
 
 *Built with ❤️ for the prompt engineering community*
