@@ -6,54 +6,59 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PromptGuide — AI Prompt Refinement</title>
     <meta name="description"
-        content="PromptGuide evaluates and refines your AI prompts using an agentic loop. Get better results from ChatGPT, Claude, Gemini and more.">
+        content="Evaluate and refine your AI prompts using an intelligent agentic loop. Get better outputs from ChatGPT, Claude, Gemini and more.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/style.css">
 </head>
 
 <body>
-    <!-- === HERO / HEADER === -->
-    <header class="hero">
-        <div class="hero-glow"></div>
-        <div class="hero-content">
-            <div class="logo">
-                <span class="logo-icon">🧭</span>
-                <span class="logo-text">PromptGuide</span>
-            </div>
-            <p class="hero-tagline">Evaluate &amp; refine your AI prompts with an <strong>agentic loop</strong></p>
+    <!-- Ambient background glow -->
+    <div class="ambient-glow"></div>
+    <div class="ambient-glow-2"></div>
+
+    <!-- === HEADER === -->
+    <header class="header fade-in">
+        <div class="logo">
+            <span class="logo-icon">🧭</span>
+            <span class="logo-text">PromptGuide</span>
         </div>
+        <p class="tagline">Evaluate &amp; refine your prompts with an <em>agentic AI loop</em></p>
     </header>
 
-    <!-- === MAIN APP === -->
-    <main class="app-container">
-        <!-- LEFT: Input + Controls -->
-        <section class="panel panel-input">
-            <h2>Your Prompt</h2>
-            <textarea id="promptInput" rows="6" placeholder="Paste or type your prompt here…"></textarea>
-
+    <!-- === MAIN GLASS CARD === -->
+    <main class="main-card fade-in delay-1">
+        <!-- Input Section -->
+        <section class="section section-input">
+            <label class="section-label" for="promptInput">Your Prompt</label>
+            <textarea id="promptInput" rows="5" placeholder="Paste or type your prompt here…"
+                spellcheck="false"></textarea>
             <div class="btn-row">
-                <button id="evaluateBtn" class="btn btn-primary">Evaluate</button>
-                <button id="autoRefineBtn" class="btn btn-accent" disabled>⚡ Auto-Refine</button>
+                <button id="evaluateBtn" class="btn btn-primary">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M9 12l2 2 4-4" />
+                        <circle cx="12" cy="12" r="10" />
+                    </svg>
+                    Evaluate
+                </button>
+                <button id="autoRefineBtn" class="btn btn-accent" disabled>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+                    </svg>
+                    Auto-Refine
+                </button>
                 <button id="stopBtn" class="btn btn-stop hidden">■ Stop</button>
-            </div>
-
-            <!-- Refine Controls -->
-            <div id="refineControls" class="refine-controls hidden">
-                <div class="ctrl-group">
-                    <label for="gauntletSelect">Refinement Goal</label>
-                    <select id="gauntletSelect" class="select"></select>
-                </div>
-                <div class="ctrl-group">
-                    <label for="targetScore">Target Score: <span id="targetScoreValue">80</span></label>
-                    <input id="targetScore" type="range" min="60" max="100" value="80" class="range-slider">
-                </div>
-                <button id="singleRefineBtn" class="btn btn-secondary">Refine Once</button>
             </div>
         </section>
 
-        <!-- CENTRE: Score -->
-        <section class="panel panel-score hidden" id="scorePanel">
+        <!-- Divider -->
+        <div class="divider"></div>
+
+        <!-- Score Section -->
+        <section id="scorePanel" class="section section-score hidden">
             <div class="score-ring-wrap">
                 <svg class="score-ring" viewBox="0 0 120 120">
                     <circle class="score-ring-bg" cx="60" cy="60" r="52" />
@@ -61,21 +66,45 @@
                 </svg>
                 <div class="score-value">
                     <span id="scoreNumber">0</span>
-                    <span class="score-label">/ 100</span>
+                    <span class="score-unit">/ 100</span>
                 </div>
             </div>
-            <div id="scoreFeedback" class="score-feedback"></div>
+            <p id="scoreFeedback" class="score-feedback"></p>
             <div id="scoreBreakdown" class="score-breakdown"></div>
         </section>
 
-        <!-- RIGHT: Result + Reasoning -->
-        <section class="panel panel-result">
-            <!-- Final result -->
+        <!-- Refine Controls -->
+        <div id="refineControls" class="refine-controls hidden">
+            <div class="ctrl-row">
+                <div class="ctrl-group">
+                    <label for="gauntletSelect" class="ctrl-label">Strategy</label>
+                    <select id="gauntletSelect" class="select"></select>
+                </div>
+                <div class="ctrl-group">
+                    <label for="targetScore" class="ctrl-label">Target: <span id="targetScoreValue">80</span></label>
+                    <input id="targetScore" type="range" min="60" max="100" value="80" class="range-slider">
+                </div>
+            </div>
+            <button id="singleRefineBtn" class="btn btn-secondary">Refine Once</button>
+        </div>
+
+        <!-- Divider -->
+        <div class="divider"></div>
+
+        <!-- Result Section -->
+        <section class="section section-result">
             <div id="finalResult" class="final-result hidden">
-                <h3>✅ Refined Prompt</h3>
-                <textarea id="refinedPrompt" rows="6" readonly></textarea>
+                <div class="result-badge">✅ Refined Prompt</div>
+                <textarea id="refinedPrompt" rows="5" readonly></textarea>
                 <div class="result-actions">
-                    <button id="copyBtn" class="btn btn-icon">📋 Copy</button>
+                    <button id="copyBtn" class="btn btn-ghost">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                        </svg>
+                        <span id="copyLabel">Copy</span>
+                    </button>
                 </div>
             </div>
 
@@ -86,15 +115,15 @@
                 </button>
             </div>
 
-            <!-- Steps / reasoning cards -->
+            <!-- Steps -->
             <div id="stepsContainer" class="steps-container"></div>
         </section>
     </main>
 
     <!-- === FOOTER === -->
-    <footer class="footer">
+    <footer class="footer fade-in delay-2">
         <p>Built by <strong>Shreyas</strong> · MSc Project 2025 · <a href="https://github.com/shreyas-debug/PromptGuide"
-                target="_blank" rel="noopener">GitHub</a></p>
+                target="_blank" rel="noopener">GitHub ↗</a></p>
     </footer>
 
     <script src="/app.js"></script>
