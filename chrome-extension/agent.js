@@ -105,7 +105,8 @@ async function agenticRefine(originalPrompt, options = {}) {
             const data = await response.json();
             currentPrompt = data.refined_prompt;
             stepData.status = 'refined';
-            onStep({ ...stepData, status: 'refined', refinedPrompt: currentPrompt });
+            stepData.reasoning = data.reasoning || null;
+            onStep({ ...stepData, status: 'refined', refinedPrompt: currentPrompt, reasoning: data.reasoning });
         } catch (err) {
             stepData.status = 'error';
             stepData.error = err.message;

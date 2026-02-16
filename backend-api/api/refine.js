@@ -55,9 +55,10 @@ export default async function handler(req, res) {
 
 Rules:
 - Rewrite the prompt to address the feedback AND achieve the specific goal.
-- Return ONLY the refined prompt text. No explanations, no quotes, no extra text.
 - Preserve the original intent of the prompt while improving it.
 - If the prompt targets a specific AI platform (${platform || 'unknown'}), optimize for that platform's strengths.
+- You MUST respond with ONLY a valid JSON object in this exact format (no markdown code fences):
+{"refined_prompt": "your rewritten prompt here", "reasoning": "A brief 2-3 sentence explanation of what you changed and why. Focus on the key improvements made."}
 ${patternContext}`;
 
         const userPrompt = `Original Prompt: "${original_prompt}"
@@ -67,10 +68,23 @@ Refinement Goal: ${gauntlet.instruction}
 
 Rewrite this prompt now:`;
 
-        const { text: refinedPrompt, provider } = await routeLLMCall(systemPrompt, userPrompt);
+        const { text: rawResponse, provider } = await routeLLMCall(systemPrompt, userPrompt);
+
+        // Parse JSON response, with fallback
+        let refinedPrompt, reasoning;
+        try {
+            const parsed = JSON.parse(rawResponse);
+            refinedPrompt = parsed.refined_prompt;
+            reasoning = parsed.reasoning || 'Prompt was refined based on the evaluation feedback.';
+        } catch {
+            // Fallback: treat entire response as the refined prompt
+            refinedPrompt = rawResponse.replace(/^["']|["']$/g, '').trim();
+            reasoning = `Refined using the "${gauntlet.name}" strategy to address the weakest evaluation dimension.`;
+        }
 
         return res.status(200).json({
             refined_prompt: refinedPrompt,
+            reasoning,
             provider_used: provider,
             gauntlet_used: gauntlet_id,
         });

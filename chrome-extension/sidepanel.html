@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <title>PromptGuide</title>
     <link rel="stylesheet" href="sidepanel.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
+
 <body>
     <div class="app">
         <!-- Header -->
@@ -73,16 +75,7 @@
                 <button id="singleRefineButton" class="btn btn-secondary">Refine Once</button>
             </div>
 
-            <!-- Agentic Step Tracker -->
-            <div id="stepTracker" class="step-tracker hidden">
-                <div class="step-tracker-header">
-                    <h3>🤖 Agentic Refinement</h3>
-                    <button id="stopAgentButton" class="btn btn-stop">■ Stop</button>
-                </div>
-                <div id="stepsContainer" class="steps-container"></div>
-            </div>
-
-            <!-- Final Result -->
+            <!-- Final Result (shown first so user sees refined prompt at top) -->
             <div id="finalResult" class="final-result hidden">
                 <h3>✅ Refined Prompt</h3>
                 <div class="result-prompt-area">
@@ -97,6 +90,20 @@
                     <button class="rating-btn" data-rating="5">👍</button>
                     <button class="rating-btn" data-rating="1">👎</button>
                 </div>
+            </div>
+
+            <!-- Agentic Step Tracker -->
+            <div id="stepTracker" class="step-tracker hidden">
+                <div class="step-tracker-header">
+                    <h3>🤖 Agentic Refinement</h3>
+                    <button id="stopAgentButton" class="btn btn-stop">■ Stop</button>
+                </div>
+                <div id="iterationsToggle" class="iterations-toggle hidden">
+                    <button id="toggleIterationsBtn" class="btn-iterations-toggle">
+                        <span class="toggle-icon">▶</span> View refinement reasoning
+                    </button>
+                </div>
+                <div id="stepsContainer" class="steps-container"></div>
             </div>
         </div>
 
@@ -151,4 +158,5 @@
     <script src="agent.js"></script>
     <script src="sidepanel.js"></script>
 </body>
+
 </html>

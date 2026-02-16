@@ -7,6 +7,7 @@
 let debounceTimer;
 let refineButton = null;
 let currentPlatform = 'unknown';
+let suppressButton = false;
 
 // --- Platform Detection ---
 const PLATFORMS = {
@@ -32,16 +33,7 @@ currentPlatform = detectPlatform();
 
 // --- Button Labels ---
 function getButtonLabel() {
-    const platformLabels = {
-        chatgpt: 'Refine for ChatGPT ✨',
-        claude: 'Refine for Claude ✨',
-        gemini: 'Refine for Gemini ✨',
-        perplexity: 'Refine for Perplexity ✨',
-        deepseek: 'Refine for DeepSeek ✨',
-        poe: 'Refine for Poe ✨',
-        copilot: 'Refine for Copilot ✨',
-    };
-    return platformLabels[currentPlatform] || 'Refine ✨';
+    return 'Refine ✨';
 }
 
 // --- Create the Refine Button ---
@@ -101,6 +93,7 @@ document.addEventListener('input', (event) => {
 
     if (isEditable) {
         clearTimeout(debounceTimer);
+        if (suppressButton) return;
         debounceTimer = setTimeout(() => {
             const text = target.isContentEditable ? target.textContent : target.value;
             if (text && text.length > 15) {
@@ -108,7 +101,7 @@ document.addEventListener('input', (event) => {
             } else if (refineButton) {
                 refineButton.style.display = 'none';
             }
-        }, 500);
+        }, 150);
     }
 });
 
@@ -129,6 +122,10 @@ document.addEventListener('mousedown', (event) => {
 // --- Listen for "Insert refined prompt" messages from side panel ---
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === 'insertRefinedPrompt') {
+        // Suppress the refine button temporarily so it doesn't re-appear
+        suppressButton = true;
+        setTimeout(() => { suppressButton = false; }, 1000);
+
         const activeElement = document.activeElement;
         if (activeElement) {
             if (activeElement.isContentEditable) {

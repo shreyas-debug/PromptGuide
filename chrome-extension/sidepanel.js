@@ -124,7 +124,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     feedback: latestEvaluation.feedback,
                     gauntlet_id: gauntletSelect.value,
                     weakness_type: latestEvaluation.weakestDimension,
-                    platform: 'sidepanel',
+                    platform: 'extension',
                 }),
             });
 
@@ -141,7 +141,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 refinedPrompt: data.refined_prompt,
                 originalScore: latestEvaluation.finalScore,
                 refinedScore: refinedEval.finalScore,
-                platform: 'sidepanel',
+                platform: 'extension',
                 gauntletUsed: gauntletSelect.value,
                 iterations: 1,
             });
@@ -154,6 +154,16 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // --- AUTO-REFINE (Agentic Loop) ---
+    const iterationsToggle = document.getElementById('iterationsToggle');
+    const toggleIterationsBtn = document.getElementById('toggleIterationsBtn');
+
+    // Wire up iterations toggle
+    toggleIterationsBtn.addEventListener('click', () => {
+        const isHidden = stepsContainer.classList.toggle('collapsed');
+        toggleIterationsBtn.querySelector('.toggle-icon').textContent = isHidden ? '▶' : '▼';
+        toggleIterationsBtn.childNodes[1].textContent = isHidden ? ' View iteration details' : ' Hide iteration details';
+    });
+
     autoRefineButton.addEventListener('click', async () => {
         if (agentRunning) return;
         agentRunning = true;
@@ -161,9 +171,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         autoRefineButton.disabled = true;
         evaluateButton.disabled = true;
-        refineControls.classList.add('hidden');
         stepTracker.classList.remove('hidden');
         finalResult.classList.add('hidden');
+        iterationsToggle.classList.add('hidden');
+        stepsContainer.classList.remove('collapsed');
         stepsContainer.innerHTML = '';
         currentChain = [];
 
@@ -173,7 +184,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const chain = await agenticRefine(promptInput.value.trim(), {
                 targetScore,
                 maxIterations: 5,
-                platform: 'sidepanel',
+                platform: 'extension',
                 onStep: (step) => renderStep(step, stepsContainer),
                 shouldStop: () => stopAgent,
             });
@@ -185,12 +196,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 showFinalResult(last.prompt);
                 displayScore(last.evaluation);
 
+                // Show iterations toggle and collapse iterations
+                iterationsToggle.classList.remove('hidden');
+                stepsContainer.classList.add('collapsed');
+                toggleIterationsBtn.querySelector('.toggle-icon').textContent = '▶';
+                toggleIterationsBtn.childNodes[1].textContent = ' View refinement reasoning';
+
                 saveToHistory({
                     originalPrompt: promptInput.value.trim(),
                     refinedPrompt: last.prompt,
                     originalScore: chain[0].evaluation.finalScore,
                     refinedScore: last.evaluation.finalScore,
-                    platform: 'sidepanel',
+                    platform: 'extension',
                     gauntletUsed: 'auto',
                     iterations: chain.length - 1,
                 });
@@ -207,6 +224,36 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Stop Agent ---
     stopAgentButton.addEventListener('click', () => {
         stopAgent = true;
+
+        // Immediately show best result so far
+        if (currentChain.length > 0) {
+            const bestStep = currentChain.reduce((best, step) =>
+                step.evaluation.finalScore > best.evaluation.finalScore ? step : best
+                , currentChain[0]);
+            showFinalResult(bestStep.prompt);
+            displayScore(bestStep.evaluation);
+
+            // Show collapsed iterations toggle
+            iterationsToggle.classList.remove('hidden');
+            stepsContainer.classList.add('collapsed');
+            toggleIterationsBtn.querySelector('.toggle-icon').textContent = '▶';
+            toggleIterationsBtn.childNodes[1].textContent = ' View refinement reasoning';
+
+            saveToHistory({
+                originalPrompt: promptInput.value.trim(),
+                refinedPrompt: bestStep.prompt,
+                originalScore: currentChain[0].evaluation.finalScore,
+                refinedScore: bestStep.evaluation.finalScore,
+                platform: 'extension',
+                gauntletUsed: 'auto (stopped)',
+                iterations: currentChain.length,
+            });
+        }
+
+        // Re-enable buttons
+        agentRunning = false;
+        autoRefineButton.disabled = false;
+        evaluateButton.disabled = false;
     });
 
     // --- Copy ---
@@ -242,7 +289,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Check if user opted in to collective learning
             const { collectiveLearning } = await chrome.storage.local.get('collectiveLearning');
             if (collectiveLearning && currentChain.length >= 2) {
-                logRefinementOutcome(currentChain, 'sidepanel', rating);
+                logRefinementOutcome(currentChain, 'extension', rating);
             }
         });
     });
@@ -334,11 +381,16 @@ function renderStep(step, container) {
 
         if (step.status === 'refining') {
             existingCard.classList.add('active');
-            const statusEl = existingCard.querySelector('.step-strategy');
+            const statusEl = existingCard.querySelector('.step-reasoning');
             if (statusEl) statusEl.innerHTML = '<span class="spinner"></span> Refining...';
         } else if (step.status === 'refined' || step.status === 'complete') {
             existingCard.classList.remove('active');
             existingCard.classList.add('success');
+            // Update reasoning if available
+            if (step.reasoning) {
+                const reasoningEl = existingCard.querySelector('.step-reasoning');
+                if (reasoningEl) reasoningEl.textContent = step.reasoning;
+            }
         }
         return;
     }
@@ -354,20 +406,15 @@ function renderStep(step, container) {
                 : step.status === 'complete' ? '✅'
                     : `#${step.iteration + 1}`;
 
+    const reasoningText = step.reasoning || (step.gauntletUsed ? `Strategy: ${step.gauntletUsed}` : step.status);
+
     card.innerHTML = `
     <div class="step-header">
-      <span class="step-label">${statusIcon} Iteration ${step.iteration + 1}</span>
+      <span class="step-label">${statusIcon} Step ${step.iteration + 1}</span>
       <span class="step-score">${step.evaluation.finalScore}/100</span>
     </div>
-    <div class="step-strategy">${step.gauntletUsed ? `Strategy: ${step.gauntletUsed}` : step.status}</div>
-    <div class="step-prompt-preview">${step.prompt.substring(0, 150)}${step.prompt.length > 150 ? '...' : ''}</div>
-    <button class="step-toggle">Show prompt</button>
+    <div class="step-reasoning">${reasoningText}</div>
   `;
-
-    card.querySelector('.step-toggle').addEventListener('click', () => {
-        card.classList.toggle('expanded');
-        card.querySelector('.step-toggle').textContent = card.classList.contains('expanded') ? 'Hide' : 'Show prompt';
-    });
 
     container.appendChild(card);
 }
@@ -377,6 +424,8 @@ function showFinalResult(text) {
     const refinedPrompt = document.getElementById('refinedPrompt');
     refinedPrompt.value = text;
     finalResult.classList.remove('hidden');
+    // Scroll the final result into view so user sees it immediately
+    finalResult.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 async function loadHistoryTab() {
@@ -394,21 +443,53 @@ async function loadHistoryTab() {
         return;
     }
 
-    historyList.innerHTML = history.map((h) => `
+    historyList.innerHTML = history.map((h) => {
+        const dateStr = new Date(h.timestamp).toLocaleDateString();
+        const truncatedPrompt = h.originalPrompt.length > 60
+            ? h.originalPrompt.substring(0, 60) + '...'
+            : h.originalPrompt;
+        return `
     <div class="history-item" data-id="${h.id}">
-      <div class="history-meta">
-        <span>${new Date(h.timestamp).toLocaleDateString()}</span>
-        <span>${h.platform}</span>
+      <div class="history-summary">
+        <div class="history-summary-left">
+          <span class="history-date">${dateStr}</span>
+          <span class="history-prompt-preview">${truncatedPrompt}</span>
+        </div>
+        <div class="history-summary-right">
+          <div class="history-scores-inline">
+            <span class="score-badge before">${h.originalScore}</span>
+            <span class="score-arrow">→</span>
+            <span class="score-badge after">${h.refinedScore}</span>
+            <span class="score-badge improvement">+${h.improvement}</span>
+          </div>
+          <span class="history-chevron">▶</span>
+        </div>
       </div>
-      <div class="history-prompt">${h.originalPrompt}</div>
-      <div class="history-scores">
-        <span class="score-badge before">${h.originalScore}</span>
-        <span>→</span>
-        <span class="score-badge after">${h.refinedScore}</span>
-        <span class="score-badge improvement">+${h.improvement}</span>
+      <div class="history-details">
+        <div class="history-detail-block">
+          <label>Original Prompt</label>
+          <p>${h.originalPrompt}</p>
+        </div>
+        <div class="history-detail-block">
+          <label>Refined Prompt</label>
+          <p>${h.refinedPrompt}</p>
+        </div>
+        <div class="history-detail-meta">
+          <span>Strategy: ${h.gauntletUsed || 'auto'}</span>
+          <span>Iterations: ${h.iterations || 1}</span>
+        </div>
       </div>
     </div>
-  `).join('');
+  `;
+    }).join('');
+
+    // Wire up expand/collapse on history items
+    historyList.querySelectorAll('.history-item').forEach((item) => {
+        item.addEventListener('click', () => {
+            const isExpanded = item.classList.toggle('expanded');
+            item.querySelector('.history-chevron').textContent = isExpanded ? '▼' : '▶';
+        });
+    });
 
     // Wire up search and filter
     searchInput.oninput = () => loadHistoryTab();
