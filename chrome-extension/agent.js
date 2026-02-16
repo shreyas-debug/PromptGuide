@@ -7,7 +7,7 @@
 // NOTE: runFullEvaluation is loaded globally from evaluation.js
 
 // Backend URL — will be updated to Vercel deployment URL
-const AGENT_API_BASE = 'https://promptguide-api.vercel.app';
+const AGENT_API_BASE = 'https://prompt-guide-ten.vercel.app';
 
 // --- Gauntlet mapping from weakness to best strategy ---
 const WEAKNESS_TO_GAUNTLET = {

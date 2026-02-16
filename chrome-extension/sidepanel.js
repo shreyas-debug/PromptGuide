@@ -7,7 +7,7 @@
 // tags and expose their functions globally (no ES module imports in
 // Chrome extension side panels without a build step).
 
-const API_BASE = 'https://prompt-guide-ten.vercel.app/';
+const API_BASE = 'https://prompt-guide-ten.vercel.app';
 
 // --- State ---
 let latestEvaluation = null;
