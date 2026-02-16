@@ -388,10 +388,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Helpers ---
     function showFinalResult(text) {
         refinedPrompt.value = text;
-        // Auto-resize textarea to fit content
-        refinedPrompt.style.height = 'auto';
-        refinedPrompt.style.height = refinedPrompt.scrollHeight + 'px';
         finalResult.classList.remove('hidden');
+        // Auto-resize after element is visible so scrollHeight is correct
+        requestAnimationFrame(() => {
+            refinedPrompt.style.height = 'auto';
+            refinedPrompt.style.height = refinedPrompt.scrollHeight + 'px';
+        });
         finalResult.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
