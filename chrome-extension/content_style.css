@@ -1,32 +1,72 @@
-
 :root {
-    --bg-light: #F8F9FA;
-    --border-color: #DEE2E6;
-    --text-primary: #212529;
-    --text-secondary: #6C757D;
-    --blue-primary: #495867;
-    --blue-secondary: #577399;
-    --blue-accent: #BDD5EA;
+    --pg-accent: #6366f1;
+    --pg-accent-hover: #4f46e5;
+    --pg-bg: #ffffff;
+    --pg-text: #ffffff;
+    --pg-shadow: rgba(99, 102, 241, 0.3);
 }
 
-
 #pg-refine-button {
-    position: fixed;
-    z-index: 99999;
-    background-color: var(--blue-secondary);
-    color: white;
-    border: 1px solid var(--blue-primary);
-    border-radius: 6px;
-    padding: 4px 10px;
-    font-size: 13px;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    position: absolute;
+    z-index: 2147483647;
+    display: none;
+    align-items: center;
+    gap: 4px;
+    background: var(--pg-accent);
+    color: var(--pg-text);
+    border: none;
+    border-radius: 8px;
+    padding: 6px 14px;
+    font-size: 12px;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     font-weight: 600;
     cursor: pointer;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
-    transition: all 0.2s;
+    box-shadow: 0 2px 8px var(--pg-shadow);
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    pointer-events: auto;
 }
 
 #pg-refine-button:hover {
-    background-color: var(--blue-primary);
-    transform: translateY(-1px);
+    background: var(--pg-accent-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 14px var(--pg-shadow);
+}
+
+#pg-refine-button:active {
+    transform: translateY(0);
+}
+
+/* Platform badge */
+#pg-refine-button[data-platform]::before {
+    content: '';
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    margin-right: 2px;
+}
+
+#pg-refine-button[data-platform="chatgpt"]::before {
+    background: #10a37f;
+}
+
+#pg-refine-button[data-platform="claude"]::before {
+    background: #d97706;
+}
+
+#pg-refine-button[data-platform="gemini"]::before {
+    background: #4285f4;
+}
+
+#pg-refine-button[data-platform="perplexity"]::before {
+    background: #1a73e8;
+}
+
+#pg-refine-button[data-platform="deepseek"]::before {
+    background: #0066ff;
+}
+
+#pg-refine-button[data-platform="copilot"]::before {
+    background: #0078d4;
 }

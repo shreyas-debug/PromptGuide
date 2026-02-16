@@ -1,114 +1,467 @@
+// ============================================================
+// sidepanel.js — Main orchestration for the side panel UI
+// Wires up evaluation, agentic refinement, history, and insights
+// ============================================================
+
+// NOTE: evaluation.js, history.js, and agent.js are loaded via script
+// tags and expose their functions globally (no ES module imports in
+// Chrome extension side panels without a build step).
+
+const API_BASE = 'https://promptguide-api.vercel.app';
+
+// --- State ---
+let latestEvaluation = null;
+let agentRunning = false;
+let stopAgent = false;
+let currentChain = [];
+
 document.addEventListener('DOMContentLoaded', () => {
-    const evaluateButton = document.getElementById('evaluateButton');
+    // --- Element References ---
     const promptInput = document.getElementById('promptInput');
-    const evaluationResult = document.getElementById('evaluationResult');
-    const refineSection = document.getElementById('refineSection');
+    const evaluateButton = document.getElementById('evaluateButton');
+    const autoRefineButton = document.getElementById('autoRefineButton');
+    const scoreSection = document.getElementById('scoreSection');
+    const scoreCircle = document.getElementById('scoreCircle');
+    const scoreNumber = document.getElementById('scoreNumber');
+    const scoreFeedback = document.getElementById('scoreFeedback');
+    const scoreBreakdown = document.getElementById('scoreBreakdown');
+    const refineControls = document.getElementById('refineControls');
     const gauntletSelect = document.getElementById('gauntletSelect');
-    const refineButton = document.getElementById('refineButton');
-    const refineLoader = document.getElementById('refineLoader');
-    const refineResult = document.getElementById('refineResult');
+    const targetScoreSlider = document.getElementById('targetScore');
+    const targetScoreValue = document.getElementById('targetScoreValue');
+    const singleRefineButton = document.getElementById('singleRefineButton');
+    const stepTracker = document.getElementById('stepTracker');
+    const stepsContainer = document.getElementById('stepsContainer');
+    const stopAgentButton = document.getElementById('stopAgentButton');
+    const finalResult = document.getElementById('finalResult');
     const refinedPrompt = document.getElementById('refinedPrompt');
     const copyButton = document.getElementById('copyButton');
+    const insertButton = document.getElementById('insertButton');
+    const themeToggle = document.getElementById('themeToggle');
+    const accountBanner = document.getElementById('accountBanner');
+    const signInBtn = document.getElementById('signInBtn');
+    const dismissBanner = document.getElementById('dismissBanner');
 
-    let latestEvaluationData = null;
+    // --- Tab Navigation ---
+    document.querySelectorAll('.tab').forEach((tab) => {
+        tab.addEventListener('click', () => {
+            document.querySelectorAll('.tab').forEach((t) => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach((c) => c.classList.remove('active'));
+            tab.classList.add('active');
+            document.getElementById(`tab-${tab.dataset.tab}`).classList.add('active');
 
-    function loadGauntlets() {
-        fetch('http://127.0.0.1:5000/api/gauntlets')
-            .then(response => response.json())
-            .then(data => {
-                if (gauntletSelect) {
-                    gauntletSelect.innerHTML = '';
-                    for (const id in data) {
-                        const option = document.createElement('option');
-                        option.value = id;
-                        option.textContent = data[id].name;
-                        gauntletSelect.appendChild(option);
-                    }
-                }
-            })
-            .catch(error => console.error('Error loading gauntlets:', error));
-    }
-
-    evaluateButton.addEventListener('click', () => {
-        const promptText = promptInput.value;
-        if (!promptText) return alert('Please enter a prompt.');
-
-        evaluationResult.style.display = 'block';
-        evaluationResult.innerHTML = '<div class="loader"></div>';
-        refineSection.style.display = 'none';
-
-        fetch('http://127.0.0.1:5000/api/evaluate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user_prompt: promptText }),
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.error || !data.evaluation) {
-                evaluationResult.innerHTML = `<p class="text-danger">Error: ${data.error || 'Invalid response.'}</p>`;
-                return;
-            }
-
-            const evalData = data.evaluation;
-            latestEvaluationData = {
-                original_prompt: promptText,
-                score: evalData.final_score,
-                feedback: evalData.feedback
-            };
-            evaluationResult.innerHTML = `
-                <h4>Score: ${evalData.final_score} / 100</h4>
-                <p><strong>Feedback:</strong> ${evalData.feedback}</p>
-            `;
-            refineSection.style.display = 'block';
-            refineResult.style.display = 'none';
-            refineButton.style.display = 'block';
-        })
-        .catch(error => console.error('Evaluation Error:', error));
-    });
-
-    refineButton.addEventListener('click', () => {
-        if (!latestEvaluationData) return;
-
-        const selectedGauntletId = gauntletSelect.value;
-        if (!selectedGauntletId) return alert('Please select a refinement goal.');
-        latestEvaluationData.gauntlet_id = selectedGauntletId;
-
-        refineButton.style.display = 'none';
-        refineLoader.style.display = 'block';
-        refineResult.style.display = 'none';
-
-        fetch('http://127.0.0.1:5000/api/refine', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(latestEvaluationData),
-        })
-        .then(response => response.json())
-        .then(data => {
-            refineLoader.style.display = 'none';
-            if (data.error) {
-                evaluationResult.innerHTML += `<p class="text-danger mt-2">Refinement Error: ${data.error}</p>`;
-            } else {
-                refinedPrompt.value = data.refined_prompt;
-                refineResult.style.display = 'block';
-            }
+            if (tab.dataset.tab === 'history') loadHistoryTab();
+            if (tab.dataset.tab === 'insights') loadInsightsTab();
         });
     });
 
+    // --- Theme Toggle ---
+    themeToggle.addEventListener('click', () => {
+        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        document.documentElement.setAttribute('data-theme', isDark ? 'light' : 'dark');
+        themeToggle.textContent = isDark ? '🌙' : '☀️';
+        chrome.storage.local.set({ theme: isDark ? 'light' : 'dark' });
+    });
+
+    // Load saved theme
+    chrome.storage.local.get('theme', (result) => {
+        if (result.theme === 'dark') {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            themeToggle.textContent = '☀️';
+        }
+    });
+
+    // --- Account Banner ---
+    chrome.storage.local.get('bannerDismissed', (result) => {
+        if (result.bannerDismissed) accountBanner.classList.add('hidden');
+    });
+
+    dismissBanner.addEventListener('click', () => {
+        accountBanner.classList.add('hidden');
+        chrome.storage.local.set({ bannerDismissed: true });
+    });
+
+    signInBtn.addEventListener('click', () => {
+        // TODO: Implement Supabase Google Auth
+        alert('Google Sign-In coming soon! History is saved locally for now.');
+    });
+
+    // --- Target Score Slider ---
+    targetScoreSlider.addEventListener('input', () => {
+        targetScoreValue.textContent = targetScoreSlider.value;
+    });
+
+    // --- Load Gauntlets ---
+    loadGauntlets();
+
+    // --- EVALUATE ---
+    evaluateButton.addEventListener('click', () => {
+        const text = promptInput.value.trim();
+        if (!text) return;
+
+        // Client-side evaluation — instant, no API call
+        latestEvaluation = runFullEvaluation(text);
+        displayScore(latestEvaluation);
+        autoRefineButton.disabled = false;
+        refineControls.classList.remove('hidden');
+        finalResult.classList.add('hidden');
+        stepTracker.classList.add('hidden');
+    });
+
+    // --- SINGLE REFINE ---
+    singleRefineButton.addEventListener('click', async () => {
+        if (!latestEvaluation) return;
+        singleRefineButton.disabled = true;
+        singleRefineButton.innerHTML = '<span class="spinner"></span> Refining...';
+
+        try {
+            const response = await fetch(`${API_BASE}/api/refine`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    original_prompt: promptInput.value.trim(),
+                    score: latestEvaluation.finalScore,
+                    feedback: latestEvaluation.feedback,
+                    gauntlet_id: gauntletSelect.value,
+                    weakness_type: latestEvaluation.weakestDimension,
+                    platform: 'sidepanel',
+                }),
+            });
+
+            const data = await response.json();
+            if (data.error) throw new Error(data.error);
+
+            const refinedEval = runFullEvaluation(data.refined_prompt);
+            showFinalResult(data.refined_prompt);
+            displayScore(refinedEval);
+
+            // Save to history
+            saveToHistory({
+                originalPrompt: promptInput.value.trim(),
+                refinedPrompt: data.refined_prompt,
+                originalScore: latestEvaluation.finalScore,
+                refinedScore: refinedEval.finalScore,
+                platform: 'sidepanel',
+                gauntletUsed: gauntletSelect.value,
+                iterations: 1,
+            });
+        } catch (err) {
+            scoreFeedback.textContent = `Error: ${err.message}`;
+        } finally {
+            singleRefineButton.disabled = false;
+            singleRefineButton.textContent = 'Refine Once';
+        }
+    });
+
+    // --- AUTO-REFINE (Agentic Loop) ---
+    autoRefineButton.addEventListener('click', async () => {
+        if (agentRunning) return;
+        agentRunning = true;
+        stopAgent = false;
+
+        autoRefineButton.disabled = true;
+        evaluateButton.disabled = true;
+        refineControls.classList.add('hidden');
+        stepTracker.classList.remove('hidden');
+        finalResult.classList.add('hidden');
+        stepsContainer.innerHTML = '';
+        currentChain = [];
+
+        const targetScore = parseInt(targetScoreSlider.value, 10);
+
+        try {
+            const chain = await agenticRefine(promptInput.value.trim(), {
+                targetScore,
+                maxIterations: 5,
+                platform: 'sidepanel',
+                onStep: (step) => renderStep(step, stepsContainer),
+                shouldStop: () => stopAgent,
+            });
+
+            currentChain = chain;
+
+            if (chain.length >= 2) {
+                const last = chain[chain.length - 1];
+                showFinalResult(last.prompt);
+                displayScore(last.evaluation);
+
+                saveToHistory({
+                    originalPrompt: promptInput.value.trim(),
+                    refinedPrompt: last.prompt,
+                    originalScore: chain[0].evaluation.finalScore,
+                    refinedScore: last.evaluation.finalScore,
+                    platform: 'sidepanel',
+                    gauntletUsed: 'auto',
+                    iterations: chain.length - 1,
+                });
+            }
+        } catch (err) {
+            scoreFeedback.textContent = `Agent error: ${err.message}`;
+        } finally {
+            agentRunning = false;
+            autoRefineButton.disabled = false;
+            evaluateButton.disabled = false;
+        }
+    });
+
+    // --- Stop Agent ---
+    stopAgentButton.addEventListener('click', () => {
+        stopAgent = true;
+    });
+
+    // --- Copy ---
     copyButton.addEventListener('click', () => {
         navigator.clipboard.writeText(refinedPrompt.value).then(() => {
-            copyButton.textContent = 'Copied!';
-            setTimeout(() => { copyButton.textContent = 'Copy'; }, 1000);
+            copyButton.textContent = '✅ Copied!';
+            setTimeout(() => { copyButton.textContent = '📋 Copy'; }, 1500);
         });
     });
 
-    async function checkForInjectedText() {
-        const result = await chrome.storage.local.get(['textToInject']);
-        if (result.textToInject && promptInput) {
-            promptInput.value = result.textToInject;
-            chrome.storage.local.remove(['textToInject']);
-        }
-    }
+    // --- Insert into page ---
+    insertButton.addEventListener('click', () => {
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+            if (tabs[0]) {
+                chrome.tabs.sendMessage(tabs[0].id, {
+                    action: 'insertRefinedPrompt',
+                    text: refinedPrompt.value,
+                });
+                insertButton.textContent = '✅ Inserted!';
+                setTimeout(() => { insertButton.textContent = '📥 Insert'; }, 1500);
+            }
+        });
+    });
 
-    loadGauntlets();
+    // --- Rating ---
+    document.querySelectorAll('.rating-btn').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+            document.querySelectorAll('.rating-btn').forEach((b) => b.classList.remove('selected'));
+            btn.classList.add('selected');
+
+            const rating = parseInt(btn.dataset.rating, 10);
+
+            // Check if user opted in to collective learning
+            const { collectiveLearning } = await chrome.storage.local.get('collectiveLearning');
+            if (collectiveLearning && currentChain.length >= 2) {
+                logRefinementOutcome(currentChain, 'sidepanel', rating);
+            }
+        });
+    });
+
+    // --- Check for injected text from content script ---
     checkForInjectedText();
 });
+
+// ===================== HELPER FUNCTIONS =====================
+
+async function loadGauntlets() {
+    try {
+        const response = await fetch(`${API_BASE}/api/gauntlets`);
+        const data = await response.json();
+        const select = document.getElementById('gauntletSelect');
+        select.innerHTML = '';
+        for (const [id, g] of Object.entries(data)) {
+            const option = document.createElement('option');
+            option.value = id;
+            option.textContent = g.name;
+            select.appendChild(option);
+        }
+    } catch (err) {
+        console.warn('Failed to load gauntlets, using defaults');
+        const select = document.getElementById('gauntletSelect');
+        select.innerHTML = `
+      <option value="improve-clarity">Improve Clarity & Specificity</option>
+      <option value="add-chain-of-thought">Add Chain-of-Thought</option>
+      <option value="convert-to-few-shot">Convert to Few-Shot</option>
+      <option value="make-concise">Make Concise & Direct</option>
+      <option value="add-role-context">Add Role & Context</option>
+      <option value="structure-output">Structure the Output</option>
+    `;
+    }
+}
+
+function displayScore(evaluation) {
+    const scoreSection = document.getElementById('scoreSection');
+    const scoreCircle = document.getElementById('scoreCircle');
+    const scoreNumber = document.getElementById('scoreNumber');
+
+    scoreSection.classList.remove('hidden');
+
+    // Animate score number
+    const targetVal = evaluation.finalScore;
+    let currentVal = 0;
+    const scoreAnim = setInterval(() => {
+        currentVal += 2;
+        if (currentVal >= targetVal) {
+            currentVal = targetVal;
+            clearInterval(scoreAnim);
+        }
+        scoreNumber.textContent = currentVal;
+    }, 20);
+
+    // Animate ring
+    const circumference = 2 * Math.PI * 52; // r=52
+    const offset = circumference - (targetVal / 100) * circumference;
+    scoreCircle.style.strokeDashoffset = offset;
+
+    // Color based on score
+    let color;
+    if (targetVal >= 70) color = 'var(--success)';
+    else if (targetVal >= 40) color = 'var(--warning)';
+    else color = 'var(--danger)';
+    scoreCircle.style.stroke = color;
+
+    // Feedback
+    document.getElementById('scoreFeedback').textContent = evaluation.feedback;
+
+    // Breakdown chips
+    const breakdownEl = document.getElementById('scoreBreakdown');
+    breakdownEl.innerHTML = '';
+    for (const [key, value] of Object.entries(evaluation.breakdown)) {
+        const chip = document.createElement('span');
+        chip.className = 'breakdown-chip';
+        chip.innerHTML = `${key}: <span class="chip-score">${value}</span>`;
+        breakdownEl.appendChild(chip);
+    }
+}
+
+function renderStep(step, container) {
+    const existingCard = document.querySelector(`[data-iteration="${step.iteration}"]`);
+
+    if (existingCard) {
+        // Update existing card
+        const scoreEl = existingCard.querySelector('.step-score');
+        if (scoreEl) scoreEl.textContent = `${step.evaluation.finalScore}/100`;
+
+        if (step.status === 'refining') {
+            existingCard.classList.add('active');
+            const statusEl = existingCard.querySelector('.step-strategy');
+            if (statusEl) statusEl.innerHTML = '<span class="spinner"></span> Refining...';
+        } else if (step.status === 'refined' || step.status === 'complete') {
+            existingCard.classList.remove('active');
+            existingCard.classList.add('success');
+        }
+        return;
+    }
+
+    // Create new card
+    const card = document.createElement('div');
+    card.className = `step-card ${step.status === 'refining' ? 'active' : ''}`;
+    card.dataset.iteration = step.iteration;
+
+    const statusIcon = step.status === 'target_reached' ? '🎯'
+        : step.status === 'converged' ? '🔄'
+            : step.status === 'error' ? '❌'
+                : step.status === 'complete' ? '✅'
+                    : `#${step.iteration + 1}`;
+
+    card.innerHTML = `
+    <div class="step-header">
+      <span class="step-label">${statusIcon} Iteration ${step.iteration + 1}</span>
+      <span class="step-score">${step.evaluation.finalScore}/100</span>
+    </div>
+    <div class="step-strategy">${step.gauntletUsed ? `Strategy: ${step.gauntletUsed}` : step.status}</div>
+    <div class="step-prompt-preview">${step.prompt.substring(0, 150)}${step.prompt.length > 150 ? '...' : ''}</div>
+    <button class="step-toggle">Show prompt</button>
+  `;
+
+    card.querySelector('.step-toggle').addEventListener('click', () => {
+        card.classList.toggle('expanded');
+        card.querySelector('.step-toggle').textContent = card.classList.contains('expanded') ? 'Hide' : 'Show prompt';
+    });
+
+    container.appendChild(card);
+}
+
+function showFinalResult(text) {
+    const finalResult = document.getElementById('finalResult');
+    const refinedPrompt = document.getElementById('refinedPrompt');
+    refinedPrompt.value = text;
+    finalResult.classList.remove('hidden');
+}
+
+async function loadHistoryTab() {
+    const searchInput = document.getElementById('historySearch');
+    const filterSelect = document.getElementById('historyFilter');
+    const historyList = document.getElementById('historyList');
+
+    const history = await getHistory({
+        search: searchInput.value,
+        platform: filterSelect.value,
+    });
+
+    if (history.length === 0) {
+        historyList.innerHTML = '<p class="empty-state">No refinement history yet.</p>';
+        return;
+    }
+
+    historyList.innerHTML = history.map((h) => `
+    <div class="history-item" data-id="${h.id}">
+      <div class="history-meta">
+        <span>${new Date(h.timestamp).toLocaleDateString()}</span>
+        <span>${h.platform}</span>
+      </div>
+      <div class="history-prompt">${h.originalPrompt}</div>
+      <div class="history-scores">
+        <span class="score-badge before">${h.originalScore}</span>
+        <span>→</span>
+        <span class="score-badge after">${h.refinedScore}</span>
+        <span class="score-badge improvement">+${h.improvement}</span>
+      </div>
+    </div>
+  `).join('');
+
+    // Wire up search and filter
+    searchInput.oninput = () => loadHistoryTab();
+    filterSelect.onchange = () => loadHistoryTab();
+}
+
+async function loadInsightsTab() {
+    // Personal stats
+    const analytics = await getAnalytics();
+    document.getElementById('statTotal').textContent = analytics.totalSessions;
+    document.getElementById('statAvgImprovement').textContent = `+${analytics.avgImprovement}`;
+    document.getElementById('statIterations').textContent = analytics.totalIterations;
+
+    // Community insights
+    try {
+        const response = await fetch(`${API_BASE}/api/patterns`);
+        const data = await response.json();
+        const patternsEl = document.getElementById('communityPatterns');
+
+        if (!data.patterns || Object.keys(data.patterns).length === 0) {
+            patternsEl.innerHTML = `
+        <p class="empty-state">
+          Community patterns will grow as more users contribute.
+          ${data.stats?.totalRefinements ? `<br>${data.stats.totalRefinements} refinements contributed so far.` : ''}
+        </p>
+      `;
+            return;
+        }
+
+        let html = '';
+        for (const [weakness, strategies] of Object.entries(data.patterns)) {
+            for (const s of strategies.slice(0, 2)) {
+                html += `
+          <div class="pattern-item">
+            <div>
+              <div class="pattern-strategy">${s.strategy}</div>
+              <div class="pattern-count">for "${weakness}" weakness · ${s.dataPoints} uses</div>
+            </div>
+            <span class="pattern-delta">+${Math.round(s.avgImprovement)}</span>
+          </div>
+        `;
+            }
+        }
+        patternsEl.innerHTML = html;
+    } catch (err) {
+        console.warn('Failed to load community insights:', err);
+    }
+}
+
+async function checkForInjectedText() {
+    const result = await chrome.storage.local.get(['textToInject']);
+    if (result.textToInject) {
+        document.getElementById('promptInput').value = result.textToInject;
+        chrome.storage.local.remove(['textToInject']);
+    }
+}

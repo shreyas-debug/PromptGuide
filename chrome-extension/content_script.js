@@ -1,70 +1,159 @@
+// ============================================================
+// content_script.js — Platform-aware inline refinement
+// Detects AI platforms, shows contextual "Refine" button,
+// and supports inserting refined prompts back into text fields
+// ============================================================
+
 let debounceTimer;
 let refineButton = null;
+let currentPlatform = 'unknown';
 
-// This function creates the single button instance for the page
+// --- Platform Detection ---
+const PLATFORMS = {
+    'chat.openai.com': 'chatgpt',
+    'chatgpt.com': 'chatgpt',
+    'claude.ai': 'claude',
+    'gemini.google.com': 'gemini',
+    'perplexity.ai': 'perplexity',
+    'deepseek.com': 'deepseek',
+    'poe.com': 'poe',
+    'copilot.microsoft.com': 'copilot',
+};
+
+function detectPlatform() {
+    const hostname = window.location.hostname;
+    for (const [domain, name] of Object.entries(PLATFORMS)) {
+        if (hostname.includes(domain)) return name;
+    }
+    return 'unknown';
+}
+
+currentPlatform = detectPlatform();
+
+// --- Button Labels ---
+function getButtonLabel() {
+    const platformLabels = {
+        chatgpt: 'Refine for ChatGPT ✨',
+        claude: 'Refine for Claude ✨',
+        gemini: 'Refine for Gemini ✨',
+        perplexity: 'Refine for Perplexity ✨',
+        deepseek: 'Refine for DeepSeek ✨',
+        poe: 'Refine for Poe ✨',
+        copilot: 'Refine for Copilot ✨',
+    };
+    return platformLabels[currentPlatform] || 'Refine ✨';
+}
+
+// --- Create the Refine Button ---
 function initializeRefineButton() {
     if (document.getElementById('pg-refine-button')) return;
 
     refineButton = document.createElement('button');
     refineButton.id = 'pg-refine-button';
-    refineButton.textContent = 'Refine ✨';
-    refineButton.style.display = 'none'; // Initially hidden
+    refineButton.textContent = getButtonLabel();
+    refineButton.style.display = 'none';
+
+    // Add platform badge
+    if (currentPlatform !== 'unknown') {
+        refineButton.dataset.platform = currentPlatform;
+    }
+
     document.body.appendChild(refineButton);
 
-    // Add the click listener ONCE when the button is created
     refineButton.addEventListener('click', () => {
-        // --- CHECKPOINT 1 ---
-        console.log("✅ Refine button clicked! Attempting to send message.");
-
-        const textToRefine = refineButton.dataset.textToRefine; // Get text from data attribute
+        const textToRefine = refineButton.dataset.textToRefine;
         if (textToRefine && chrome.runtime?.id) {
-            chrome.runtime.sendMessage({ action: "openPopupWithText", text: textToRefine });
-        } else {
-            console.error("❌ Could not send message. Context may be invalidated.");
+            chrome.runtime.sendMessage({
+                action: 'openPopupWithText',
+                text: textToRefine,
+                platform: currentPlatform,
+            });
         }
-        refineButton.style.display = 'none'; // Hide after click
+        refineButton.style.display = 'none';
     });
 }
 
-// This function shows and positions the button
+// --- Position and Show the Button ---
 function showRefineButton(targetElement) {
     if (!refineButton) return;
 
-    const text = targetElement.isContentEditable ? targetElement.textContent : targetElement.value;
+    const text = targetElement.isContentEditable
+        ? targetElement.textContent
+        : targetElement.value;
     refineButton.dataset.textToRefine = text;
 
     const rect = targetElement.getBoundingClientRect();
-    refineButton.style.display = 'block';
-
-    refineButton.style.top = `${rect.top - 30}px`;
-    refineButton.style.left = `${rect.left}px`;
+    refineButton.style.display = 'flex';
+    refineButton.style.top = `${window.scrollY + rect.top - 38}px`;
+    refineButton.style.left = `${window.scrollX + rect.left}px`;
 }
 
+// --- Initialize ---
 initializeRefineButton();
 
-// Listener for typing on the page
+// --- Listen for typing ---
 document.addEventListener('input', (event) => {
     const target = event.target;
-    const isEditable = target.tagName.toLowerCase() === 'textarea' || target.isContentEditable;
+    const isEditable =
+        target.tagName?.toLowerCase() === 'textarea' ||
+        target.tagName?.toLowerCase() === 'input' ||
+        target.isContentEditable;
 
     if (isEditable) {
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(() => {
             const text = target.isContentEditable ? target.textContent : target.value;
-            if (text.length > 15) {
+            if (text && text.length > 15) {
                 showRefineButton(target);
-            } else {
-                if (refineButton) refineButton.style.display = 'none';
+            } else if (refineButton) {
+                refineButton.style.display = 'none';
             }
         }, 500);
     }
 });
 
-// Hide button when clicking away
+// --- Hide button on click away ---
 document.addEventListener('mousedown', (event) => {
-    if (refineButton && refineButton.style.display === 'block') {
-        if (!refineButton.contains(event.target) && !event.target.isContentEditable && event.target.tagName.toLowerCase() !== 'textarea') {
-            refineButton.style.display = 'none';
-        }
+    if (
+        refineButton &&
+        refineButton.style.display !== 'none' &&
+        !refineButton.contains(event.target) &&
+        !event.target.isContentEditable &&
+        event.target.tagName?.toLowerCase() !== 'textarea' &&
+        event.target.tagName?.toLowerCase() !== 'input'
+    ) {
+        refineButton.style.display = 'none';
     }
+});
+
+// --- Listen for "Insert refined prompt" messages from side panel ---
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (request.action === 'insertRefinedPrompt') {
+        const activeElement = document.activeElement;
+        if (activeElement) {
+            if (activeElement.isContentEditable) {
+                activeElement.textContent = request.text;
+                // Dispatch input event so the platform picks up the change
+                activeElement.dispatchEvent(new Event('input', { bubbles: true }));
+            } else if (activeElement.tagName?.toLowerCase() === 'textarea' || activeElement.tagName?.toLowerCase() === 'input') {
+                activeElement.value = request.text;
+                activeElement.dispatchEvent(new Event('input', { bubbles: true }));
+            } else {
+                // Try to find the main text input on the page
+                const textarea = document.querySelector('textarea');
+                const contentEditable = document.querySelector('[contenteditable="true"]');
+                const target = textarea || contentEditable;
+                if (target) {
+                    if (target.isContentEditable) {
+                        target.textContent = request.text;
+                    } else {
+                        target.value = request.text;
+                    }
+                    target.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+            }
+        }
+        sendResponse({ success: true });
+    }
+    return true;
 });

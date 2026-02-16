@@ -1,31 +1,40 @@
 {
   "manifest_version": 3,
-  "name": "Prompt Guide",
-  "version": "1.0",
-  "description": "An AI-powered assistant to help you refine your prompts.",
+  "name": "PromptGuide",
+  "version": "2.0.0",
+  "description": "AI-powered prompt refinement that learns and improves from every user. Evaluate, refine, and perfect your prompts with an agentic AI agent.",
   "permissions": [
     "sidePanel",
-    "storage"
+    "storage",
+    "contextMenus",
+    "activeTab"
   ],
   "host_permissions": [
-    "http://127.0.0.1:5000/"
+    "https://promptguide-api.vercel.app/*"
   ],
   "side_panel": {
     "default_path": "sidepanel.html"
   },
   "action": {
-    "default_title": "Open Prompt Guide"
+    "default_title": "Open PromptGuide"
   },
   "background": {
     "service_worker": "background.js"
   },
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
-      "js": ["content_script.js"],
-      "css": ["content_style.css"]
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "content_script.js"
+      ],
+      "css": [
+        "content_style.css"
+      ]
     }
   ],
+  "options_page": "welcome.html",
   "icons": {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",

@@ -1,23 +1,49 @@
-// This listener sets the default behavior for the extension icon to open the side panel
+// ============================================================
+// background.js — Service worker for PromptGuide v2
+// Handles install events, context menu, and side panel messaging
+// ============================================================
+
+// --- First Install: Open Welcome Page ---
+chrome.runtime.onInstalled.addListener((details) => {
+  if (details.reason === 'install') {
+    chrome.tabs.create({ url: 'welcome.html' });
+  }
+
+  // Create context menu
+  chrome.contextMenus.create({
+    id: 'refine-with-promptguide',
+    title: 'Refine with PromptGuide ✨',
+    contexts: ['selection'],
+  });
+});
+
+// --- Context Menu Click ---
+chrome.contextMenus.onClicked.addListener((info, tab) => {
+  if (info.menuItemId === 'refine-with-promptguide' && info.selectionText) {
+    // Store selected text and open side panel
+    chrome.storage.local.set({ textToInject: info.selectionText }, () => {
+      chrome.sidePanel.open({ tabId: tab.id });
+    });
+  }
+});
+
+// --- Extension Icon Click: Open Side Panel ---
 chrome.action.onClicked.addListener((tab) => {
   chrome.sidePanel.open({ tabId: tab.id });
 });
 
-// This listener handles messages from the content script
+// --- Messages from Content Script ---
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.action === "openPopupWithText") {
-    // Check if the sender has a tab (which it should from a content script)
+  if (request.action === 'openPopupWithText') {
     if (sender.tab?.id) {
       const tabId = sender.tab.id;
-      // First, open the side panel for the specific tab
-      chrome.sidePanel.open({ tabId: tabId }, () => {
-        // After the panel is open, store the text.
-        // This ensures the panel is ready to receive the text.
-        chrome.storage.local.set({ textToInject: request.text }, () => {
+      chrome.sidePanel.open({ tabId }, () => {
+        chrome.storage.local.set({
+          textToInject: request.text,
+          detectedPlatform: request.platform || 'unknown',
         });
       });
     }
   }
-  // Return true to indicate to send a response asynchronously
   return true;
 });

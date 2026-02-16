@@ -1,41 +1,154 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Prompt Gauntlet</title>
+    <meta charset="UTF-8">
+    <title>PromptGuide</title>
     <link rel="stylesheet" href="sidepanel.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h5>Prompt Guide</h5>
-            <p>Evaluate and Refine Your Prompts</p>
+    <div class="app">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-top">
+                <h1 class="logo">⚡ PromptGuide</h1>
+                <button id="themeToggle" class="icon-btn" title="Toggle theme">🌙</button>
+            </div>
+            <p class="tagline">AI-powered prompt refinement that learns</p>
+        </header>
+
+        <!-- Account Banner (shown if not signed in) -->
+        <div id="accountBanner" class="account-banner">
+            <span>📊 Sign in to save history & help PromptGuide learn</span>
+            <button id="signInBtn" class="btn-sign-in">Sign in with Google</button>
+            <button id="dismissBanner" class="btn-dismiss" title="Dismiss">✕</button>
         </div>
-        <div class="main-content">
-            <textarea id="promptInput" rows="6" placeholder="Enter a prompt to evaluate..."></textarea>
-            <button id="evaluateButton" class="btn-evaluate">Evaluate Prompt</button>
-        </div>
 
-        <div id="evaluationResult" class="result-area" style="display:none;"></div>
+        <!-- Tab Navigation -->
+        <nav class="tabs">
+            <button class="tab active" data-tab="refine">✨ Refine</button>
+            <button class="tab" data-tab="history">📋 History</button>
+            <button class="tab" data-tab="insights">📊 Insights</button>
+        </nav>
 
-        <div id="refineSection" class="result-area" style="display:none;">
-
-            <div class="goal-selector">
-                <label for="gauntletSelect">Refinement Goal:</label>
-                <select id="gauntletSelect" class="form-select"></select>
+        <!-- ==================== REFINE TAB ==================== -->
+        <div id="tab-refine" class="tab-content active">
+            <!-- Input Area -->
+            <div class="input-section">
+                <textarea id="promptInput" rows="5" placeholder="Paste or type your prompt here..."></textarea>
+                <div class="action-row">
+                    <button id="evaluateButton" class="btn btn-primary">Evaluate</button>
+                    <button id="autoRefineButton" class="btn btn-accent" disabled>
+                        ⚡ Auto-Refine
+                    </button>
+                </div>
             </div>
 
-            <button id="refineButton" class="btn-refine">Refine</button>
+            <!-- Score Display -->
+            <div id="scoreSection" class="score-section hidden">
+                <div class="score-ring-container">
+                    <svg class="score-ring" viewBox="0 0 120 120">
+                        <circle class="score-ring-bg" cx="60" cy="60" r="52" />
+                        <circle id="scoreCircle" class="score-ring-progress" cx="60" cy="60" r="52" />
+                    </svg>
+                    <div class="score-value">
+                        <span id="scoreNumber">0</span>
+                        <span class="score-label">/ 100</span>
+                    </div>
+                </div>
+                <div id="scoreFeedback" class="score-feedback"></div>
+                <div id="scoreBreakdown" class="score-breakdown"></div>
+            </div>
 
-            <div id="refineLoader" class="loader" style="display:none;"></div>
-            <div id="refineResult" style="display:none;">
-                <p><strong>Refined Prompt:</strong></p>
-                <div class="prompt-area">
+            <!-- Refinement Goal Selector -->
+            <div id="refineControls" class="refine-controls hidden">
+                <div class="control-group">
+                    <label for="gauntletSelect">Refinement Goal</label>
+                    <select id="gauntletSelect" class="select"></select>
+                </div>
+                <div class="control-group">
+                    <label for="targetScore">Target Score: <span id="targetScoreValue">80</span></label>
+                    <input id="targetScore" type="range" min="60" max="100" value="80" class="range-slider">
+                </div>
+                <button id="singleRefineButton" class="btn btn-secondary">Refine Once</button>
+            </div>
+
+            <!-- Agentic Step Tracker -->
+            <div id="stepTracker" class="step-tracker hidden">
+                <div class="step-tracker-header">
+                    <h3>🤖 Agentic Refinement</h3>
+                    <button id="stopAgentButton" class="btn btn-stop">■ Stop</button>
+                </div>
+                <div id="stepsContainer" class="steps-container"></div>
+            </div>
+
+            <!-- Final Result -->
+            <div id="finalResult" class="final-result hidden">
+                <h3>✅ Refined Prompt</h3>
+                <div class="result-prompt-area">
                     <textarea id="refinedPrompt" rows="6" readonly></textarea>
-                    <button id="copyButton" class="btn-copy" title="Copy">Copy</button>
+                    <div class="result-actions">
+                        <button id="copyButton" class="btn btn-icon" title="Copy">📋 Copy</button>
+                        <button id="insertButton" class="btn btn-icon" title="Insert into page">📥 Insert</button>
+                    </div>
+                </div>
+                <div id="ratingSection" class="rating-section">
+                    <span>Was this helpful?</span>
+                    <button class="rating-btn" data-rating="5">👍</button>
+                    <button class="rating-btn" data-rating="1">👎</button>
                 </div>
             </div>
         </div>
+
+        <!-- ==================== HISTORY TAB ==================== -->
+        <div id="tab-history" class="tab-content">
+            <div class="history-controls">
+                <input id="historySearch" type="text" placeholder="Search prompts..." class="search-input">
+                <select id="historyFilter" class="select select-small">
+                    <option value="">All Platforms</option>
+                    <option value="chatgpt">ChatGPT</option>
+                    <option value="claude">Claude</option>
+                    <option value="gemini">Gemini</option>
+                    <option value="perplexity">Perplexity</option>
+                    <option value="unknown">Other</option>
+                </select>
+            </div>
+            <div id="historyList" class="history-list">
+                <p class="empty-state">No refinement history yet. Start refining to build your history!</p>
+            </div>
         </div>
+
+        <!-- ==================== INSIGHTS TAB ==================== -->
+        <div id="tab-insights" class="tab-content">
+            <div id="personalStats" class="insights-card">
+                <h3>📈 Your Stats</h3>
+                <div class="stats-grid">
+                    <div class="stat">
+                        <span class="stat-value" id="statTotal">0</span>
+                        <span class="stat-label">Total Refined</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-value" id="statAvgImprovement">+0</span>
+                        <span class="stat-label">Avg Improvement</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-value" id="statIterations">0</span>
+                        <span class="stat-label">Total Iterations</span>
+                    </div>
+                </div>
+            </div>
+            <div id="communityInsights" class="insights-card">
+                <h3>🌍 Community Insights</h3>
+                <div id="communityPatterns" class="patterns-list">
+                    <p class="empty-state">Community patterns will appear as more users contribute.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="evaluation.js"></script>
+    <script src="history.js"></script>
+    <script src="agent.js"></script>
     <script src="sidepanel.js"></script>
 </body>
 </html>

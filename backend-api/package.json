@@ -1,0 +1,16 @@
+{
+  "name": "promptguide-api",
+  "version": "2.0.0",
+  "description": "Serverless backend for PromptGuide Chrome Extension",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vercel dev",
+    "deploy": "vercel --prod"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.21.0",
+    "@supabase/supabase-js": "^2.49.1",
+    "groq-sdk": "^0.9.0"
+  }
+}
