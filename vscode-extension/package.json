@@ -1,0 +1,199 @@
+{
+  "name": "promptguide",
+  "displayName": "PromptGuide — Prompt Optimizer",
+  "description": "Optimize AI prompts for token efficiency. Inline linting, scoring, and rule-based refinement — no LLM calls from our side.",
+  "version": "1.0.1",
+  "publisher": "promptguide",
+  "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/shreyas-debug/PromptGuide"
+  },
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "AI",
+    "Linters",
+    "Other"
+  ],
+  "keywords": [
+    "prompt",
+    "AI",
+    "token",
+    "optimization",
+    "prompt engineering"
+  ],
+  "icon": "media/icon16.png",
+  "main": "./dist/extension.js",
+  "activationEvents": [
+    "onLanguage:markdown",
+    "onLanguage:plaintext",
+    "onLanguage:prompt"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "prompt",
+        "aliases": ["Prompt", "prompt"],
+        "extensions": [".prompt"],
+        "mimetypes": ["text/prompt"],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "prompt",
+        "scopeName": "text.prompt",
+        "path": "./syntaxes/prompt.tmGrammar.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "promptguide.evaluateSelection",
+        "title": "PromptGuide: Evaluate & Optimize Selection",
+        "category": "PromptGuide"
+      },
+      {
+        "command": "promptguide.evaluateFile",
+        "title": "PromptGuide: Evaluate & Optimize File",
+        "category": "PromptGuide"
+      },
+      {
+        "command": "promptguide.openPanel",
+        "title": "PromptGuide: Open Panel",
+        "category": "PromptGuide"
+      },
+      {
+        "command": "promptguide.setTokenModel",
+        "title": "PromptGuide: Set Target AI Model",
+        "category": "PromptGuide"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "promptguide.evaluateSelection",
+          "when": "editorHasSelection && resourceExtname =~ /\\.(md|txt|prompt)$/",
+          "group": "promptguide@1"
+        },
+        {
+          "command": "promptguide.evaluateFile",
+          "when": "!editorHasSelection && resourceExtname =~ /\\.(md|txt|prompt)$/",
+          "group": "promptguide@2"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "promptguide.evaluateSelection",
+          "when": "editorLangId =~ /markdown|plaintext|prompt/"
+        },
+        {
+          "command": "promptguide.evaluateFile",
+          "when": "editorLangId =~ /markdown|plaintext|prompt/"
+        }
+      ]
+    },
+    "chatParticipants": [
+      {
+        "id": "promptguide.optimizer",
+        "name": "promptguide",
+        "fullName": "PromptGuide Optimizer",
+        "description": "Optimize your AI prompts for token efficiency. No AI used — pure analysis and rule-based transforms.",
+        "isSticky": false,
+        "commands": [
+          {
+            "name": "score",
+            "description": "Score your prompt across 5 dimensions (clarity, vocabulary, actionability, specificity, brevity)"
+          },
+          {
+            "name": "optimize",
+            "description": "Score and apply rule-based optimizations to reduce tokens and improve quality"
+          },
+          {
+            "name": "tokens",
+            "description": "Count estimated tokens for your prompt across different AI models"
+          }
+        ]
+      }
+    ],
+    "configuration": {
+      "title": "PromptGuide",
+      "properties": {
+        "promptguide.tokenModel": {
+          "type": "string",
+          "default": "auto",
+          "enum": ["auto", "gpt4", "gpt35", "claude", "llama"],
+          "enumDescriptions": [
+            "Auto — universal approximation (~chars/4)",
+            "GPT-4 / GPT-4o / ChatGPT (exact count)",
+            "GPT-3.5-turbo (exact count)",
+            "Claude (Anthropic) — approximation",
+            "Llama / Mistral / Gemma (local) — approximation"
+          ],
+          "description": "Target AI model for token counting. GPT models use exact tokenization; others are approximated."
+        },
+        "promptguide.enableDiagnostics": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show inline prompt quality hints as you type in .md, .txt, and .prompt files."
+        },
+        "promptguide.enableStatusBar": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show live token count in the status bar for prompt files."
+        },
+        "promptguide.enableCodeLens": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show token estimates above fenced code blocks in Markdown files."
+        },
+        "promptguide.diagnosticsDelay": {
+          "type": "number",
+          "default": 600,
+          "minimum": 200,
+          "maximum": 2000,
+          "description": "Delay in milliseconds before re-running diagnostics after typing stops."
+        }
+      }
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "promptguide-sidebar",
+          "title": "PromptGuide",
+          "icon": "media/icon-activity.svg"
+        }
+      ]
+    },
+    "views": {
+      "promptguide-sidebar": [
+        {
+          "type": "webview",
+          "id": "promptguide.sidebarView",
+          "name": "Prompt Optimizer"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run build:prod",
+    "build": "node esbuild.config.js",
+    "build:prod": "node esbuild.config.js --production",
+    "watch": "node esbuild.config.js --watch",
+    "compile": "tsc --noEmit",
+    "package": "vsce package"
+  },
+  "dependencies": {
+    "compromise": "^14.14.0",
+    "gpt-tokenizer": "^2.1.2",
+    "@huggingface/transformers": "^3.0.0"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.90.0",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.4.0",
+    "esbuild": "^0.21.0",
+    "@vscode/vsce": "^2.0.0"
+  }
+}

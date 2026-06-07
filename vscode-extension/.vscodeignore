@@ -1,0 +1,14 @@
+.vscode/**
+src/**
+!src/webview/ui/**
+node_modules/**
+!node_modules/@huggingface/**
+!node_modules/onnxruntime-node/**
+.gitignore
+esbuild.config.js
+tsconfig.json
+tsconfig.*.json
+**/*.map
+**/*.ts
+!**/*.d.ts
+.github/**

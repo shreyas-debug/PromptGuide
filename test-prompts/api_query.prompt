@@ -1,0 +1,2 @@
+System: You are an expert API assistant.
+User: I would be very happy if you could write a request to retrieve user data from the endpoint /api/users. Ensure that you return the response as a JSON array.

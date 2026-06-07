@@ -1,158 +1,132 @@
 # PromptGuide: An Analytical Toolkit for Prompt Evaluation and Refinement
 
-*A Chrome Extension that provides metric-based feedback and AI-powered refinement to help you master prompt engineering.*
+*A multi-platform prompt engineering toolkit — available as a Chrome Extension, a VS Code Extension (on the Marketplace), and a Web App.*
+
+[![VS Code Marketplace](https://img.shields.io/badge/VS%20Code-Marketplace-blue?logo=visualstudiocode)](https://marketplace.visualstudio.com/items?itemName=promptguide.promptguide)
+[![Live Demo](https://img.shields.io/badge/Web%20App-Live%20Demo-green)](https://prompt-guide-ten.vercel.app/)
+
+---
 
 ## Project Description
 
-PromptGuide addresses a critical gap in prompt engineering: the lack of objective, systematic feedback. While prompt engineering has become essential for effective AI interactions, practitioners often rely on trial-and-error or subjective assessments. This tool introduces a hybrid architecture that combines deterministic evaluation with intelligent refinement.
+PromptGuide addresses a critical gap in prompt engineering: the lack of objective, systematic feedback. While prompt engineering has become essential for effective AI interactions, practitioners often rely on trial-and-error or subjective assessments. This tool introduces a hybrid architecture that combines deterministic evaluation with intelligent refinement — available wherever you work.
 
-The system features a two-stage approach: first, a local, rule-based engine provides immediate, metric-based scoring on criteria like clarity, specificity, and actionability. Then, a context-aware AI agent leverages this feedback to generate improved prompts tailored to specific refinement goals.
+---
 
-Live demo: https://prompt-guide-ten.vercel.app/
+## 🧩 Platforms
 
-## How It Works
+### 1. 🔷 VS Code Extension *(New — Published on Marketplace)*
 
-### Two-Stage User Workflow
+Optimize AI prompts directly inside VS Code without leaving your editor.
 
-**1. Evaluate**
-Your prompt is first analyzed by a deterministic, metric-based engine that scores it across multiple dimensions:
-- **Clarity**: How well-defined and unambiguous the prompt is
-- **Specificity**: The level of detail and precision provided
-- **Actionability**: How clear the expected output format and requirements are
+**Install**: Search **"PromptGuide"** in the VS Code Extensions panel (`Ctrl+Shift+X`), or install from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=promptguide.promptguide).
 
-**2. Refine**
-After evaluation, you select a "Refinement Goal" (a gauntlet) that defines your improvement objective. The system then:
-- Sends your original prompt, evaluation score, and feedback to a powerful LLM
-- Generates a new, improved prompt that addresses the identified weaknesses
-- Provides context-aware suggestions for further optimization
+**Features:**
+- **Live Token Counter** — Real-time token estimates in the status bar for `.md`, `.txt`, and `.prompt` files
+- **Inline Diagnostics** — Automatically flags missing role context, no output format, filler phrases, and weak action verbs
+- **One-Click Quick Fixes** — Apply fixes instantly via the VS Code lightbulb menu (`Ctrl+.`)
+- **Optimizer Panel** — Visual score breakdown across Clarity, Vocabulary, Actionability, Specificity, and Brevity
+- **Copilot Chat Participant** — Use `@promptguide /optimize`, `/score`, or `/tokens` directly in GitHub Copilot Chat
+- **Zero LLM calls** — All analysis and transforms are deterministic and rule-based; works fully offline
 
-### User Interface Options
+**Source:** [`vscode-extension/`](./vscode-extension/)
 
-- **Proactive Mode**: Type in any text box on a webpage, pause, and the "Refine ✨" button appears for immediate refinement
-- **Side Panel**: Click the extension icon for detailed analysis and manual prompt evaluation
+---
+
+### 2. 🌐 Web App
+
+A standalone web interface for prompt evaluation and AI-powered refinement.
+
+**Live demo:** https://prompt-guide-ten.vercel.app/
+
+**Features:**
+- Metric-based prompt scoring (Clarity, Specificity, Actionability)
+- AI-powered refinement via Groq API
+- Refinement goals ("gauntlets") for targeted improvements
+
+**Source:** [`frontend/`](./frontend/)
+
+---
+
+### 3. 🟡 Chrome Extension
+
+Proactive prompt refinement directly in any web text box.
+
+**Features:**
+- **Proactive Mode** — Pause typing in any text box and a "Refine ✨" button appears
+- **Side Panel** — Detailed analysis and manual prompt evaluation
+- Works on any webpage with text input fields
+
+**Source:** [`chrome-extension/`](./chrome-extension/)
+
+---
+
+## 🗂 Project Structure
+
+```
+prompt-guide-project/
+├── vscode-extension/        ← VS Code Extension (published on Marketplace)
+│   ├── src/
+│   │   ├── extension.ts
+│   │   ├── chat/            ← @promptguide Copilot Chat participant
+│   │   ├── core/            ← Evaluator, transformers, token counter
+│   │   ├── providers/       ← Diagnostics, CodeLens, Quick Fix, Status Bar
+│   │   └── webview/         ← Optimizer panel UI
+│   ├── data/                ← Verbosity rules JSON
+│   ├── media/               ← Extension icons
+│   └── package.json
+├── frontend/                ← Web App (Vercel)
+├── chrome-extension/        ← Chrome Extension
+├── backend/                 ← Python/Flask API
+└── backend-api/
+```
+
+---
 
 ## Technology Stack
 
-### Backend
-- **Python**: Core application logic and API development
-- **Flask**: Lightweight web framework for RESTful API endpoints
-- **NLTK**: Natural language processing and text analysis
-- **textstat**: Readability and text complexity metrics
-- **sentence-transformers**: Semantic similarity and embedding analysis
-- **Groq API**: High-performance LLM integration for prompt refinement
+### VS Code Extension
+- **TypeScript** — Extension logic
+- **esbuild** — Bundler
+- **gpt-tokenizer** — Exact GPT-4/3.5 token counts
+- **compromise** — NLP for filler phrase detection
+- **@huggingface/transformers** — MiniLM semantic deduplication (runs locally, no API)
 
-### Frontend
-- **Vanilla JavaScript**: Extension logic and DOM manipulation
-- **HTML5**: Structure and semantic markup
-- **CSS3**: Styling and responsive design
-- **Chrome Extension APIs**: 
-  - Side Panel API for detailed analysis interface
-  - Storage API for user preferences and history
-  - Messaging API for communication between components
+### Web App & Backend
+- **Python / Flask** — RESTful API
+- **NLTK / textstat** — NLP and readability metrics
+- **sentence-transformers** — Semantic similarity
+- **Groq API** — LLM-powered prompt refinement
+- **Vanilla JS / HTML5 / CSS3** — Frontend
 
-## Project Structure
-
-```
-prompt-gauntlet-project/
-├── backend/
-│   ├── app/
-│   │   ├── __init__.py
-│   │   ├── routes.py
-│   │   ├── services.py
-│   │   └── evaluation_metrics.py
-│   ├── run.py
-│   └── requirements.txt
-└── chrome-extension/
-    ├── manifest.json
-    ├── background.js
-    ├── content_script.js
-    ├── content_style.css
-    ├── sidepanel.html
-    ├── sidepanel.css
-    └── sidepanel.js
-```
+---
 
 ## Setup and Installation
 
-### Backend Setup
+### VS Code Extension (Local Development)
+```bash
+cd vscode-extension
+npm install
+npm run build
+# Press F5 in VS Code to launch the Extension Host
+```
 
-1. **Navigate to the backend directory**
-   ```bash
-   cd backend
-   ```
+### Backend
+```bash
+cd backend
+python -m venv venv
+source venv/bin/activate      # Windows: .\venv\Scripts\activate
+pip install -r requirements.txt
+# Add API_KEY=your_key to a .env file
+python run.py
+# Server starts at http://localhost:5000
+```
 
-2. **Create a Python virtual environment**
-   ```bash
-   python -m venv venv
-   ```
+### Chrome Extension
+1. Open `chrome://extensions/` in Chrome
+2. Enable **Developer mode**
+3. Click **Load unpacked** → select the `chrome-extension/` folder
 
-3. **Activate the environment**
-   
-   **For Mac/Linux:**
-   ```bash
-   source venv/bin/activate
-   ```
-   
-   **For Windows:**
-   ```bash
-   .\venv\Scripts\activate
-   ```
-
-4. **Install required dependencies**
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-5. **Configure environment variables**
-   
-   Create a `.env` file in the backend directory and add your API key:
-   ```
-   API_KEY=your_api_key_here
-   ```
-
-6. **Start the server**
-   ```bash
-   python run.py
-   ```
-
-   The backend server will start on `http://localhost:5000`
-
-### Frontend (Chrome Extension) Setup
-
-1. **Open Chrome Extensions**
-   - Navigate to `chrome://extensions/` in Google Chrome
-
-2. **Enable Developer Mode**
-   - Toggle "Developer mode" in the top-right corner
-
-3. **Load the Extension**
-   - Click "Load unpacked"
-   - Select the `chrome-extension` folder from your project directory
-
-4. **Verify Installation**
-   - Ensure the extension appears in your extensions list
-   - Pin it to the toolbar for easy access
-   - Verify it is enabled and active
-
-## How to Use
-
-### Proactive Mode
-1. Navigate to any webpage with text input fields
-2. Start typing your prompt in any text box
-3. Pause typing for a moment
-4. The "Refine ✨" button will appear next to the text box
-5. Click the button to get instant refinement suggestions
-
-### Manual Mode
-1. Click the PromptGuide extension icon in your Chrome toolbar
-2. The side panel will open with detailed analysis tools
-3. Paste or type your prompt in the evaluation area
-4. Review the metric-based feedback
-5. Select a refinement goal from the available gauntlets
-6. Generate an improved version of your prompt
-
-## GitHub Pages Deployment
-
-The frontend of this project is automatically deployed to GitHub Pages using GitHub Actions.
+---
 
 *Built with ❤️ for the prompt engineering community*

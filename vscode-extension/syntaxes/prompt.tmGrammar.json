@@ -1,0 +1,17 @@
+{
+  "scopeName": "text.prompt",
+  "patterns": [
+    {
+      "name": "comment.line.number-sign.prompt",
+      "match": "#.*$"
+    },
+    {
+      "name": "keyword.control.prompt",
+      "match": "\\b(You are|Act as|As a|Your role|Your task|Instructions|Context|Goal|Format|Output|Example|Note)\\b"
+    },
+    {
+      "name": "string.quoted.double.prompt",
+      "match": "\"[^\"]*\""
+    }
+  ]
+}
