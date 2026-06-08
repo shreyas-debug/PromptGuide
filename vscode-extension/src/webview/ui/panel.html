@@ -11,28 +11,43 @@
 
   <!-- ===== HEADER ===== -->
   <header class="pg-header">
-    <div class="pg-logo">
-      <svg class="pg-logo-icon" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="16" cy="16" r="14" stroke="url(#grad)" stroke-width="2.5"/>
-        <path d="M10 16 L14 20 L22 12" stroke="url(#grad)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <defs>
-          <linearGradient id="grad" x1="0" y1="0" x2="32" y2="32">
-            <stop offset="0%" stop-color="#7c3aed"/>
-            <stop offset="100%" stop-color="#06b6d4"/>
-          </linearGradient>
-        </defs>
-      </svg>
-      <span class="pg-logo-text">PromptGuide</span>
+    <div class="pg-header-top">
+      <div class="pg-logo">
+        <svg class="pg-logo-icon" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="16" cy="16" r="14" stroke="url(#grad)" stroke-width="2.5"/>
+          <path d="M10 16 L14 20 L22 12" stroke="url(#grad)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <defs>
+            <linearGradient id="grad" x1="0" y1="0" x2="32" y2="32">
+              <stop offset="0%" stop-color="#7c3aed"/>
+              <stop offset="100%" stop-color="#06b6d4"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        <span class="pg-logo-text">PromptGuide</span>
+      </div>
     </div>
-    <div class="pg-model-selector">
-      <label for="modelSelect">Model:</label>
-      <select id="modelSelect">
-        <option value="auto">Auto (estimate)</option>
-        <option value="gpt4">GPT-4 / GPT-4o (exact)</option>
-        <option value="gpt35">GPT-3.5 (exact)</option>
-        <option value="claude">Claude (~est.)</option>
-        <option value="llama">Llama/Mistral (~est.)</option>
-      </select>
+    <div class="pg-header-controls">
+      <div class="pg-model-selector">
+        <label for="modelSelect">Model:</label>
+        <select id="modelSelect" title="Target AI model for token estimation">
+          <option value="auto" title="Universal estimate ±15%">Auto</option>
+          <option value="gpt4" title="Exact count using OpenAI cl100k_base tokenizer">GPT-4o</option>
+          <option value="gpt35" title="Exact count using OpenAI cl100k_base tokenizer">GPT-3.5</option>
+          <option value="claude" title="Anthropic Claude approximation ±5%">Claude</option>
+          <option value="llama" title="Llama/Mistral BPE approximation ±10%">Llama</option>
+        </select>
+      </div>
+      <div class="pg-limit-selector">
+        <label for="limitSelect">Limit:</label>
+        <select id="limitSelect" title="Target token ceiling limit">
+          <option value="0" title="Disable token limit monitoring">Off</option>
+          <option value="4096" title="4,096 tokens (GPT-3.5 / short)">4K</option>
+          <option value="8192" title="8,192 tokens (GPT-4 standard)">8K</option>
+          <option value="16384" title="16,384 tokens (extended)">16K</option>
+          <option value="32768" title="32,768 tokens (large context)">32K</option>
+          <option value="custom" title="Enter a custom token limit">Custom...</option>
+        </select>
+      </div>
     </div>
   </header>
 
@@ -42,6 +57,7 @@
     <div class="pg-textarea-wrap">
       <textarea id="promptInput" class="pg-textarea" placeholder="Paste or type your AI prompt here..." rows="6"></textarea>
       <div class="pg-token-badge" id="tokenBadge">— tokens</div>
+      <div class="pg-budget-badge hidden" id="budgetBadge"></div>
     </div>
     <button id="optimizeBtn" class="pg-btn pg-btn-primary">
       <span class="pg-btn-icon">⚡</span> Evaluate &amp; Optimize
@@ -74,6 +90,18 @@
       </div>
     </section>
 
+    <!-- Trend Graph (Sparkline) -->
+    <section class="pg-section hidden" id="sparklineSection">
+      <h3 class="pg-section-title">Prompt Quality Trend</h3>
+      <div class="pg-sparkline-container">
+        <div id="sparkline" class="pg-sparkline"></div>
+        <div class="pg-sparkline-labels">
+          <span>Older runs</span>
+          <span>Newest run</span>
+        </div>
+      </div>
+    </section>
+
     <!-- Token Savings -->
     <section class="pg-section pg-token-section" id="tokenSection">
       <h3 class="pg-section-title">Token Analysis</h3>
@@ -90,6 +118,7 @@
         <div class="pg-token-saved" id="tokenSaved"></div>
       </div>
       <p class="pg-token-note" id="tokenNote"></p>
+      <p class="pg-token-note pg-budget-note hidden" id="budgetNote" style="margin-top:6px;font-weight:600"></p>
     </section>
 
     <!-- Optimized Prompt -->
@@ -101,6 +130,9 @@
       <div class="pg-action-row">
         <button id="applyBtn" class="pg-btn pg-btn-secondary">
           <span>✏️</span> Apply to Editor
+        </button>
+        <button id="diffBtn" class="pg-btn pg-btn-secondary">
+          <span>🔍</span> View Diff
         </button>
         <button id="copyBtn" class="pg-btn pg-btn-secondary">
           <span>📋</span> Copy

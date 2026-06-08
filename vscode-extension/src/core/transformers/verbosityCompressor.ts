@@ -16,13 +16,20 @@ interface VerbosityRule {
 }
 
 let rulesCache: VerbosityRule[] | null = null;
+let cachedExtensionPath: string | null = null;
+
+export function clearRulesCache(): void {
+  rulesCache = null;
+  cachedExtensionPath = null;
+}
 
 function loadRules(extensionPath: string): VerbosityRule[] {
-  if (rulesCache) { return rulesCache; }
+  if (rulesCache && cachedExtensionPath === extensionPath) { return rulesCache; }
   const rulesPath = path.join(extensionPath, 'data', 'verbosity-rules.json');
   try {
     const content = fs.readFileSync(rulesPath, 'utf-8');
     rulesCache = JSON.parse(content) as VerbosityRule[];
+    cachedExtensionPath = extensionPath;
     return rulesCache;
   } catch {
     return [];

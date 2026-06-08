@@ -3,6 +3,7 @@
 // Uses compromise for POS-based verb detection (more accurate than regex lists)
 // ============================================================
 import nlp from 'compromise';
+import * as path from 'path';
 
 export interface Evaluation {
   finalScore: number;
@@ -88,10 +89,11 @@ function countConstraints(text: string): number {
 }
 
 // --- 5. Brevity ---
-function getPromptLengthScore(text: string): number {
+function getBrevityScore(text: string): number {
   const words = tokenize(text);
-  if (words.length < 5) { return 0; }
-  if (words.length < 15) { return 5; }
+  const count = words.length;
+  if (count < 5 || count > 400) { return 0; }
+  if (count < 15 || count > 200) { return 5; }
   return 10;
 }
 
@@ -143,15 +145,15 @@ export function runFullEvaluation(prompt: string): Evaluation {
   const lexicalDiversity = calculateLexicalDiversity(prompt);
   const detectedVerbs = detectVerbs(prompt);
   const constraints = countConstraints(prompt);
-  const lengthScore = getPromptLengthScore(prompt);
+  const brevityScore = getBrevityScore(prompt);
   const detectedDomain = detectDomain(prompt);
 
   const breakdown: ScoreBreakdown = {
     Clarity: readingEase > 60 ? 20 : Math.max(0, Math.round(readingEase / 3)),
     Vocabulary: lexicalDiversity > 0.8 ? 20 : Math.round(lexicalDiversity * 25),
-    Actionability: detectedVerbs.length > 0 ? 25 : 0,
-    Specificity: constraints > 0 ? 25 : 0,
-    Brevity: lengthScore > 5 ? 10 : 0,
+    Actionability: Math.min(25, detectedVerbs.length * 10),
+    Specificity: Math.min(25, constraints * 8),
+    Brevity: brevityScore,
   };
 
   const finalScore = Object.values(breakdown).reduce((a, b) => a + b, 0);
@@ -171,7 +173,19 @@ export function runFullEvaluation(prompt: string): Evaluation {
     feedbackParts.push("Add output constraints like 'in JSON format', 'as a list', or 'step by step'.");
   }
   if (breakdown.Brevity === 0) {
-    feedbackParts.push('The prompt is too short. Add more context for the AI to work with.');
+    const words = tokenize(prompt);
+    if (words.length < 5) {
+      feedbackParts.push('The prompt is too short. Add more context for the AI to work with.');
+    } else {
+      feedbackParts.push('The prompt is very long. Consider making it more concise.');
+    }
+  } else if (breakdown.Brevity === 5) {
+    const words = tokenize(prompt);
+    if (words.length < 15) {
+      feedbackParts.push('The prompt is slightly short. Consider adding more context.');
+    } else {
+      feedbackParts.push('The prompt is somewhat verbose. Check if any details can be trimmed.');
+    }
   }
 
   const feedback = feedbackParts.length > 0
@@ -193,4 +207,45 @@ export function runFullEvaluation(prompt: string): Evaluation {
   }
 
   return { finalScore, breakdown, feedback, weakestDimension, detectedVerbs, detectedDomain };
+}
+
+/**
+ * Smart heuristic to determine if a text document is a prompt file.
+ * Avoids showing token counts and diagnostics on non-prompt markdown/txt files (like READMEs).
+ */
+export function isPromptText(text: string, fsPath: string, languageId: string): boolean {
+  if (languageId === 'prompt' || fsPath.endsWith('.prompt')) {
+    return true;
+  }
+
+  // Check file name
+  const fileName = path.basename(fsPath).toLowerCase();
+  if (fileName.includes('prompt')) {
+    return true;
+  }
+
+  // Check for opt-in comments
+  if (text.includes('<!-- promptguide-enable -->') || text.includes('<!-- promptguide: enable -->') || text.includes('<!-- prompt -->')) {
+    return true;
+  }
+
+  // Check for frontmatter opt-in
+  const frontmatterMatch = text.match(/^\s*---\r?\n([\s\S]*?)\r?\n---\r?\n/);
+  if (frontmatterMatch) {
+    const fmContent = frontmatterMatch[1];
+    if (/(promptguide|prompt)\s*:\s*true/i.test(fmContent)) {
+      return true;
+    }
+  }
+
+  // Check for common prompt headers
+  const promptHeaders = [
+    /^#+ (system prompt|prompt|task|instructions|role)\b/im,
+    /^(system|user|assistant):/im
+  ];
+  if (promptHeaders.some(regex => regex.test(text))) {
+    return true;
+  }
+
+  return false;
 }

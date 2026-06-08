@@ -4,7 +4,7 @@
 // Uses the evaluator (compromise POS) for accurate detection
 // ============================================================
 import * as vscode from 'vscode';
-import { runFullEvaluation } from '../core/evaluator';
+import { runFullEvaluation, isPromptText } from '../core/evaluator';
 
 const SUPPORTED_LANGUAGES = ['markdown', 'plaintext', 'prompt'];
 
@@ -19,12 +19,18 @@ export class DiagnosticsProvider implements vscode.Disposable {
 
   register(): void {
     // Run on currently open editors
-    vscode.window.visibleTextEditors.forEach(e => this.scheduleAnalysis(e.document));
+    vscode.window.visibleTextEditors.forEach(e => {
+      if (this.isSupported(e.document)) {
+        this.scheduleAnalysis(e.document);
+      }
+    });
 
     this.disposables.push(
       vscode.workspace.onDidChangeTextDocument(e => {
         if (this.isSupported(e.document)) {
           this.scheduleAnalysis(e.document);
+        } else {
+          this.collection.delete(e.document.uri);
         }
       }),
       vscode.workspace.onDidOpenTextDocument(doc => {
@@ -44,7 +50,8 @@ export class DiagnosticsProvider implements vscode.Disposable {
 
   private isSupported(doc: vscode.TextDocument): boolean {
     return SUPPORTED_LANGUAGES.includes(doc.languageId) &&
-      this.config.get<boolean>('enableDiagnostics', true);
+      this.config.get<boolean>('enableDiagnostics', true) &&
+      isPromptText(doc.getText(), doc.uri.fsPath, doc.languageId);
   }
 
   private scheduleAnalysis(doc: vscode.TextDocument): void {

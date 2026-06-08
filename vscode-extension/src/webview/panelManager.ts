@@ -16,6 +16,15 @@ export class PanelManager implements vscode.Disposable {
   constructor(private readonly context: vscode.ExtensionContext) { }
 
   /**
+   * Updates configuration values sent to the webview.
+   */
+  public updateConfig(model: ModelFamily, budget: number): void {
+    if (this.panel) {
+      void this.panel.webview.postMessage({ type: 'config', model, budget });
+    }
+  }
+
+  /**
    * Opens the optimizer panel with the given initial text.
    */
   openPanel(initialText?: string): void {
@@ -84,12 +93,27 @@ export class PanelManager implements vscode.Disposable {
             model
           );
           void this.panel?.webview.postMessage({ type: 'optimizeResult', result });
+
+          // Save and post version history
+          const editor = this.sourceEditor ?? vscode.window.activeTextEditor;
+          if (editor) {
+            const fileUri = editor.document.uri.toString();
+            const history = this.saveFileHistory(fileUri, result.scoreOptimized.finalScore, result.tokensOptimized);
+            void this.panel?.webview.postMessage({ type: 'history', history });
+          }
         } catch (err) {
           void this.panel?.webview.postMessage({
             type: 'error',
             message: err instanceof Error ? err.message : 'Optimization failed',
           });
         }
+        break;
+      }
+
+      case 'showDiff': {
+        const original = message.original as string;
+        const optimized = message.optimized as string;
+        void vscode.commands.executeCommand('promptguide.showDiff', original, optimized);
         break;
       }
 
@@ -150,13 +174,98 @@ export class PanelManager implements vscode.Disposable {
         break;
       }
 
-      case 'ready': {
-        // Webview has finished loading — send current model setting
-        const model = vscode.workspace.getConfiguration('promptguide')
-          .get<ModelFamily>('tokenModel', 'auto');
-        void this.panel?.webview.postMessage({ type: 'config', model });
+      case 'setBudget': {
+        const budget = message.budget as number;
+        await vscode.workspace.getConfiguration('promptguide')
+          .update('tokenBudget', budget, vscode.ConfigurationTarget.Global);
         break;
       }
+
+      case 'promptCustomLimit': {
+        const currentBudget = vscode.workspace.getConfiguration('promptguide').get<number>('tokenBudget', 0);
+        const input = await vscode.window.showInputBox({
+          title: 'PromptGuide: Set Custom Token Limit',
+          prompt: 'Enter token limit (e.g. 100, 200, 10000). Enter 0 to disable.',
+          value: currentBudget > 0 ? currentBudget.toString() : '',
+          validateInput: (value) => {
+            const num = parseInt(value, 10);
+            if (value.trim() && (isNaN(num) || num < 0)) {
+              return 'Must be a non-negative number';
+            }
+            return null;
+          }
+        });
+
+        if (input !== undefined) {
+          const budget = parseInt(input.trim(), 10) || 0;
+          await vscode.workspace.getConfiguration('promptguide')
+            .update('tokenBudget', budget, vscode.ConfigurationTarget.Global);
+        } else {
+          // Send original config back to restore selector state
+          const model = vscode.workspace.getConfiguration('promptguide').get<ModelFamily>('tokenModel', 'auto');
+          void this.panel?.webview.postMessage({ type: 'config', model, budget: currentBudget });
+        }
+        break;
+      }
+
+      case 'ready': {
+        const model = vscode.workspace.getConfiguration('promptguide')
+          .get<ModelFamily>('tokenModel', 'auto');
+        const budget = vscode.workspace.getConfiguration('promptguide')
+          .get<number>('tokenBudget', 0);
+        void this.panel?.webview.postMessage({ type: 'config', model, budget });
+
+        const editor = this.sourceEditor ?? vscode.window.activeTextEditor;
+        if (editor) {
+          const fileUri = editor.document.uri.toString();
+          const history = this.getFileHistory(fileUri);
+          void this.panel?.webview.postMessage({ type: 'history', history });
+        }
+        break;
+      }
+    }
+  }
+
+  private getHistoryFilePath(): string {
+    return path.join(this.context.globalStorageUri.fsPath, 'prompt_history.json');
+  }
+
+  private getFileHistory(fileUri: string): any[] {
+    const filePath = this.getHistoryFilePath();
+    try {
+      if (!fs.existsSync(filePath)) { return []; }
+      const content = fs.readFileSync(filePath, 'utf-8');
+      const data = JSON.parse(content);
+      return data[fileUri] || [];
+    } catch {
+      return [];
+    }
+  }
+
+  private saveFileHistory(fileUri: string, score: number, tokens: number): any[] {
+    const filePath = this.getHistoryFilePath();
+    try {
+      fs.mkdirSync(path.dirname(filePath), { recursive: true });
+      let data: Record<string, any[]> = {};
+      if (fs.existsSync(filePath)) {
+        const content = fs.readFileSync(filePath, 'utf-8');
+        data = JSON.parse(content);
+      }
+      const history = data[fileUri] || [];
+      history.push({
+        timestamp: Date.now(),
+        score,
+        tokens
+      });
+      if (history.length > 15) {
+        history.shift();
+      }
+      data[fileUri] = history;
+      fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8');
+      return history;
+    } catch (err) {
+      console.error('PromptGuide: Failed to save file history:', err);
+      return [];
     }
   }
 

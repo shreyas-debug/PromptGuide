@@ -5,6 +5,7 @@
 // ============================================================
 import * as vscode from 'vscode';
 import { estimateTokens, type ModelFamily } from '../core/tokenCounter';
+import { isPromptText } from '../core/evaluator';
 
 export class CodeLensProvider implements vscode.CodeLensProvider, vscode.Disposable {
   private readonly changeEmitter = new vscode.EventEmitter<void>();
@@ -39,55 +40,44 @@ export class CodeLensProvider implements vscode.CodeLensProvider, vscode.Disposa
   ): vscode.CodeLens[] {
     if (!this.config.get<boolean>('enableCodeLens', true)) { return []; }
 
-    const lenses: vscode.CodeLens[] = [];
     const text = document.getText();
+    if (!text.trim() || !isPromptText(text, document.uri.fsPath, document.languageId)) { return []; }
+
     const model = this.config.get<ModelFamily>('tokenModel', 'auto');
+    const startPos = new vscode.Position(0, 0);
+    const estimate = estimateTokens(text, model);
+    const prefix = estimate.isExact ? '' : '~';
+    const lines = text.split('\n').length;
 
-    // Find all fenced code blocks
-    const fenceRegex = /^```[^\n]*\n([\s\S]*?)^```/gm;
-    let match: RegExpExecArray | null;
+    // Estimate tokens saved by removing comments and empty lines from the entire file
+    const strippedContent = text
+      .split('\n')
+      .filter(line => {
+        const trimmed = line.trim();
+        return trimmed.length > 0 &&
+          !trimmed.startsWith('//') &&
+          !trimmed.startsWith('#') &&
+          !trimmed.startsWith('*') &&
+          !trimmed.startsWith('/*') &&
+          trimmed !== '*/';
+      })
+      .join('\n');
+    const strippedEstimate = estimateTokens(strippedContent, model);
+    const savings = estimate.count - strippedEstimate.count;
 
-    while ((match = fenceRegex.exec(text)) !== null) {
-      const blockContent = match[1];
-      if (!blockContent.trim()) { continue; }
+    const lens = new vscode.CodeLens(
+      new vscode.Range(startPos, startPos),
+      {
+        title: savings > 0
+          ? `PromptGuide ✦ ${prefix}${estimate.count} tokens  ·  Strip comments → −${savings} tokens  ·  ${lines} lines`
+          : `PromptGuide ✦ ${prefix}${estimate.count} tokens  ·  ${lines} lines`,
+        command: 'promptguide.quickRefineCodeBlock',
+        tooltip: `Click for quick-refine options (apply/copy/details) — no window needed.`,
+        arguments: [text, 0, text.length],
+      }
+    );
 
-      const startPos = document.positionAt(match.index);
-      const estimate = estimateTokens(blockContent, model);
-      const prefix = estimate.isExact ? '' : '~';
-      const lines = blockContent.split('\n').length;
-
-      // Estimate tokens saved by removing comments and empty lines
-      const strippedContent = blockContent
-        .split('\n')
-        .filter(line => {
-          const trimmed = line.trim();
-          return trimmed.length > 0 &&
-            !trimmed.startsWith('//') &&
-            !trimmed.startsWith('#') &&
-            !trimmed.startsWith('*') &&
-            !trimmed.startsWith('/*') &&
-            trimmed !== '*/';
-        })
-        .join('\n');
-      const strippedEstimate = estimateTokens(strippedContent, model);
-      const savings = estimate.count - strippedEstimate.count;
-
-      const lens = new vscode.CodeLens(
-        new vscode.Range(startPos, startPos),
-        {
-          title: savings > 0
-            ? `PromptGuide ✦ ${prefix}${estimate.count} tokens  ·  Strip comments → −${savings} tokens  ·  ${lines} lines`
-            : `PromptGuide ✦ ${prefix}${estimate.count} tokens  ·  ${lines} lines`,
-          command: 'promptguide.quickRefineCodeBlock',
-          tooltip: `Click for quick-refine options (apply/copy/details) — no window needed.`,
-          arguments: [blockContent, match.index, match.index + match[0].length],
-        }
-      );
-
-      lenses.push(lens);
-    }
-
-    return lenses;
+    return [lens];
   }
 
   dispose(): void {

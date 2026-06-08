@@ -5,7 +5,8 @@
 // ============================================================
 import { runFullEvaluation, type Evaluation } from '../evaluator';
 import { estimateTokens, type ModelFamily } from '../tokenCounter';
-import { compressVerbosity, removeRedundantSentences } from './verbosityCompressor';
+import { compressVerbosity, removeRedundantSentences, clearRulesCache } from './verbosityCompressor';
+export { clearRulesCache };
 import { injectActionVerb } from './actionVerbInjector';
 import { appendConstraint } from './constraintAppender';
 import { injectRole } from './roleInjector';

@@ -2,7 +2,7 @@
   "name": "promptguide",
   "displayName": "PromptGuide — Prompt Optimizer",
   "description": "Optimize AI prompts for token efficiency. Inline linting, scoring, and rule-based refinement — no LLM calls from our side.",
-  "version": "1.0.1",
+  "version": "1.0.4",
   "publisher": "promptguide",
   "license": "UNLICENSED",
   "repository": {
@@ -35,9 +35,16 @@
     "languages": [
       {
         "id": "prompt",
-        "aliases": ["Prompt", "prompt"],
-        "extensions": [".prompt"],
-        "mimetypes": ["text/prompt"],
+        "aliases": [
+          "Prompt",
+          "prompt"
+        ],
+        "extensions": [
+          ".prompt"
+        ],
+        "mimetypes": [
+          "text/prompt"
+        ],
         "configuration": "./language-configuration.json"
       }
     ],
@@ -67,6 +74,11 @@
       {
         "command": "promptguide.setTokenModel",
         "title": "PromptGuide: Set Target AI Model",
+        "category": "PromptGuide"
+      },
+      {
+        "command": "promptguide.copyWholeFile",
+        "title": "PromptGuide: Copy Whole File & Open Panel",
         "category": "PromptGuide"
       }
     ],
@@ -123,7 +135,13 @@
         "promptguide.tokenModel": {
           "type": "string",
           "default": "auto",
-          "enum": ["auto", "gpt4", "gpt35", "claude", "llama"],
+          "enum": [
+            "auto",
+            "gpt4",
+            "gpt35",
+            "claude",
+            "llama"
+          ],
           "enumDescriptions": [
             "Auto — universal approximation (~chars/4)",
             "GPT-4 / GPT-4o / ChatGPT (exact count)",
@@ -146,7 +164,7 @@
         "promptguide.enableCodeLens": {
           "type": "boolean",
           "default": true,
-          "description": "Show token estimates above fenced code blocks in Markdown files."
+          "description": "Show token estimate at the top of prompt files."
         },
         "promptguide.diagnosticsDelay": {
           "type": "number",
@@ -154,6 +172,16 @@
           "minimum": 200,
           "maximum": 2000,
           "description": "Delay in milliseconds before re-running diagnostics after typing stops."
+        },
+        "promptguide.tokenBudget": {
+          "type": "number",
+          "default": 0,
+          "description": "Target token budget limit for prompts. The status bar color changes (amber at 80% capacity, red at 100% capacity) as you approach it. Set to 0 to disable."
+        },
+        "promptguide.enableHovers": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show estimated token count and API costs when hovering over highlighted selection text."
         }
       }
     },

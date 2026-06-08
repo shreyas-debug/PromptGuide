@@ -40,14 +40,30 @@ body {
 /* --- Header --- */
 .pg-header {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 16px 12px;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
   border-bottom: 1px solid var(--pg-border);
   background: var(--pg-surface);
   position: sticky;
   top: 0;
   z-index: 10;
+}
+
+.pg-header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.pg-header-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  flex-wrap: wrap;
 }
 
 .pg-logo {
@@ -85,6 +101,23 @@ body {
   font-family: var(--pg-font);
   cursor: pointer;
   outline: none;
+  max-width: 130px;
+}
+
+/* Responsive adjustment for narrow sidebar views */
+@media (max-width: 320px) {
+  .pg-header-controls {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .pg-model-selector, .pg-limit-selector {
+    justify-content: space-between;
+    width: 100%;
+  }
+  .pg-model-selector select, .pg-limit-selector select {
+    max-width: 140px;
+  }
 }
 
 /* --- Sections --- */
@@ -428,3 +461,77 @@ body {
 
 /* SVG gradient definition (referenced by ring fill) */
 svg defs { position: absolute; }
+
+/* --- Budget Mode --- */
+.pg-budget-badge {
+  position: absolute;
+  bottom: 8px;
+  left: 10px;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+.pg-budget-badge.normal {
+  background: var(--pg-input-bg);
+  color: var(--pg-success);
+  border: 1px solid rgba(166, 227, 161, 0.3);
+}
+.pg-budget-badge.warning {
+  background: rgba(249, 226, 175, 0.15);
+  color: var(--pg-warning);
+  border: 1px solid rgba(249, 226, 175, 0.4);
+}
+.pg-budget-badge.error {
+  background: rgba(243, 139, 168, 0.15);
+  color: var(--pg-danger);
+  border: 1px solid rgba(243, 139, 168, 0.4);
+}
+.pg-budget-note.error {
+  color: var(--pg-danger);
+}
+.pg-budget-note.success {
+  color: var(--pg-success);
+}
+
+/* --- Sparkline --- */
+.pg-sparkline-container {
+  background: var(--pg-surface);
+  border: 1px solid var(--pg-border);
+  border-radius: var(--pg-radius);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.pg-sparkline {
+  width: 100%;
+}
+.pg-sparkline-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: var(--pg-text-muted);
+  font-weight: 500;
+}
+
+/* --- Webview Header Limit Selector --- */
+.pg-limit-selector {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--pg-text-muted);
+}
+.pg-limit-selector select {
+  background: var(--pg-input-bg);
+  color: var(--pg-text);
+  border: 1px solid var(--pg-input-border);
+  border-radius: 6px;
+  padding: 3px 6px;
+  font-size: 11px;
+  font-family: var(--pg-font);
+  cursor: pointer;
+  outline: none;
+  max-width: 100px;
+}

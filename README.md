@@ -26,6 +26,10 @@ Optimize AI prompts directly inside VS Code without leaving your editor.
 - **Inline Diagnostics** — Automatically flags missing role context, no output format, filler phrases, and weak action verbs
 - **One-Click Quick Fixes** — Apply fixes instantly via the VS Code lightbulb menu (`Ctrl+.`)
 - **Optimizer Panel** — Visual score breakdown across Clarity, Vocabulary, Actionability, Specificity, and Brevity
+- **Prompt Diff View** — Compare original vs. optimized prompt versions side-by-side in native VS Code diff views
+- **Token Limit Mode** — Monitor token limits with dynamic status bar warnings and a clean dropdown selector in the panel header
+- **Quality Trend Chart** — See optimization progress over time mapped via an inline SVG sparkline graph
+- **Selection Hover breakdowns** — Highlight text and hover to see its exact token count and estimated API costs (GPT-4o vs Claude 3.5 Sonnet)
 - **Copilot Chat Participant** — Use `@promptguide /optimize`, `/score`, or `/tokens` directly in GitHub Copilot Chat
 - **Zero LLM calls** — All analysis and transforms are deterministic and rule-based; works fully offline
 

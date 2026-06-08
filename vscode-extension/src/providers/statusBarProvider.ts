@@ -6,6 +6,7 @@
 import * as vscode from 'vscode';
 import { estimateTokens, formatTokenDisplay, formatTokenTooltip, type ModelFamily } from '../core/tokenCounter';
 import { optimizePromptSync } from '../core/transformers';
+import { isPromptText } from '../core/evaluator';
 
 const SUPPORTED_EXTENSIONS = ['.md', '.txt', '.prompt'];
 
@@ -22,8 +23,8 @@ export class StatusBarProvider implements vscode.Disposable {
       vscode.StatusBarAlignment.Right,
       100
     );
-    this.item.command = 'promptguide.openPanel';
-    this.item.tooltip = 'PromptGuide: Click to open the optimizer panel';
+    this.item.command = 'promptguide.copyWholeFile';
+    this.item.tooltip = 'PromptGuide: Click to copy the entire file to clipboard';
   }
 
   register(): void {
@@ -62,6 +63,10 @@ export class StatusBarProvider implements vscode.Disposable {
   }
 
   private updateCount(doc: vscode.TextDocument): void {
+    if (!this.isSupported(doc)) {
+      this.item.hide();
+      return;
+    }
     const text = doc.getText().trim();
     if (!text) {
       this.item.text = '✦ 0 tokens';
@@ -70,6 +75,7 @@ export class StatusBarProvider implements vscode.Disposable {
     }
 
     const model = this.config.get<ModelFamily>('tokenModel', 'auto');
+    const budget = this.config.get<number>('tokenBudget', 0);
 
     // Get both original and optimized counts for comparison
     const original = estimateTokens(text, model);
@@ -78,15 +84,32 @@ export class StatusBarProvider implements vscode.Disposable {
     const result = optimizePromptSync(text, this.extensionPath, model);
     const optimizedCount = result.tokensOptimized;
 
-    this.item.text = formatTokenDisplay(original);
-    this.item.tooltip = formatTokenTooltip(original, optimizedCount);
-    this.item.backgroundColor = undefined;
+    // Apply budget color thresholds
+    if (budget > 0) {
+      const pct = (original.count / budget) * 100;
+      if (pct >= 100) {
+        this.item.text = `⚠️ ${original.count}/${budget} tokens`;
+        this.item.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground');
+      } else if (pct >= 80) {
+        this.item.text = `⚠️ ${original.count}/${budget} tokens`;
+        this.item.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
+      } else {
+        this.item.text = `✦ ${original.count}/${budget} tokens`;
+        this.item.backgroundColor = undefined;
+      }
+    } else {
+      this.item.text = formatTokenDisplay(original);
+      this.item.backgroundColor = undefined;
+    }
+
+    this.item.tooltip = `${formatTokenTooltip(original, optimizedCount)}\n\nClick to copy entire file to clipboard`;
     this.item.show();
   }
 
   private isSupported(doc: vscode.TextDocument): boolean {
     const ext = doc.uri.fsPath.slice(doc.uri.fsPath.lastIndexOf('.'));
-    return SUPPORTED_EXTENSIONS.includes(ext);
+    return SUPPORTED_EXTENSIONS.includes(ext) &&
+      isPromptText(doc.getText(), doc.uri.fsPath, doc.languageId);
   }
 
   dispose(): void {
