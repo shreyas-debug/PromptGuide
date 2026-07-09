@@ -1,6 +1,5 @@
 .vscode/**
 src/**
-!src/webview/ui/**
 node_modules/**
 !node_modules/@huggingface/**
 !node_modules/onnxruntime-node/**

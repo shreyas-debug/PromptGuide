@@ -23,8 +23,8 @@ export class StatusBarProvider implements vscode.Disposable {
       vscode.StatusBarAlignment.Right,
       100
     );
-    this.item.command = 'promptguide.copyWholeFile';
-    this.item.tooltip = 'PromptGuide: Click to copy the entire file to clipboard';
+    this.item.command = 'promptguide.openFromFile';
+    this.item.tooltip = 'PromptGuide: Click to evaluate & optimize the entire file';
   }
 
   register(): void {
@@ -40,6 +40,11 @@ export class StatusBarProvider implements vscode.Disposable {
           this.scheduleUpdate(e.document);
         }
       }),
+      vscode.workspace.onDidChangeConfiguration(e => {
+        if (e.affectsConfiguration('promptguide')) {
+          this.updateForEditor(vscode.window.activeTextEditor);
+        }
+      })
     );
   }
 
@@ -48,7 +53,8 @@ export class StatusBarProvider implements vscode.Disposable {
       this.item.hide();
       return;
     }
-    if (!this.config.get<boolean>('enableStatusBar', true)) {
+    const config = vscode.workspace.getConfiguration('promptguide');
+    if (!config.get<boolean>('enableStatusBar', true)) {
       this.item.hide();
       return;
     }
@@ -74,8 +80,9 @@ export class StatusBarProvider implements vscode.Disposable {
       return;
     }
 
-    const model = this.config.get<ModelFamily>('tokenModel', 'auto');
-    const budget = this.config.get<number>('tokenBudget', 0);
+    const config = vscode.workspace.getConfiguration('promptguide');
+    const model = config.get<ModelFamily>('tokenModel', 'auto');
+    const budget = config.get<number>('tokenBudget', 0);
 
     // Get both original and optimized counts for comparison
     const original = estimateTokens(text, model);
@@ -102,7 +109,7 @@ export class StatusBarProvider implements vscode.Disposable {
       this.item.backgroundColor = undefined;
     }
 
-    this.item.tooltip = `${formatTokenTooltip(original, optimizedCount)}\n\nClick to copy entire file to clipboard`;
+    this.item.tooltip = `${formatTokenTooltip(original, optimizedCount)}\n\nClick to evaluate & optimize the entire file`;
     this.item.show();
   }
 

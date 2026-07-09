@@ -48,11 +48,13 @@ export class PromptHoverProvider implements vscode.HoverProvider {
     const targetModel = this.config.get<ModelFamily>('tokenModel', 'auto');
     const estimate = estimateTokens(text, targetModel);
 
+    // Get cost configs
+    const costGpt4oPerM = this.config.get<number>('costGpt4o', 2.50);
+    const costClaudePerM = this.config.get<number>('costClaude', 3.00);
+
     // Calculate costs for 1,000 API calls
-    // GPT-4o input: $2.50 per 1M tokens => ($2.50 / 1,000,000) * tokens * 1000 = tokens * 0.0025
-    // Claude 3.5 Sonnet input: $3.00 per 1M tokens => ($3.00 / 1,000,000) * tokens * 1000 = tokens * 0.003
-    const gpt4oCost = estimate.count * 0.0025;
-    const claudeCost = estimate.count * 0.003;
+    const gpt4oCost = estimate.count * (costGpt4oPerM / 1000);
+    const claudeCost = estimate.count * (costClaudePerM / 1000);
 
     const formatCost = (cost: number): string => {
       if (cost === 0) { return '$0.00'; }
@@ -72,8 +74,9 @@ export class PromptHoverProvider implements vscode.HoverProvider {
     hoverMarkdown.appendMarkdown(`* **Target Model:** ${estimate.label}\n\n`);
     hoverMarkdown.appendMarkdown(`---\n\n`);
     hoverMarkdown.appendMarkdown(`**Estimated Input Cost (for 1,000 API calls):**\n`);
-    hoverMarkdown.appendMarkdown(`* **GPT-4o** ($2.50/M): \`${formatCost(gpt4oCost)}\`\n`);
-    hoverMarkdown.appendMarkdown(`* **Claude 3.5 Sonnet** ($3.00/M): \`${formatCost(claudeCost)}\`\n\n`);
+    hoverMarkdown.appendMarkdown(`* **GPT-4o** ($${costGpt4oPerM.toFixed(2)}/M): \`${formatCost(gpt4oCost)}\`\n`);
+    hoverMarkdown.appendMarkdown(`* **Claude 3.5 Sonnet** ($${costClaudePerM.toFixed(2)}/M): \`${formatCost(claudeCost)}\`\n\n`);
+    hoverMarkdown.appendMarkdown(`*(Prices are approximate, check provider pricing pages. Configure costs in settings.)*\n\n`);
     hoverMarkdown.appendMarkdown(`*To configure target models or disable hovers, check PromptGuide settings.*`);
 
     return new vscode.Hover(hoverMarkdown, selection);

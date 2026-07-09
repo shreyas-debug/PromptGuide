@@ -238,12 +238,23 @@ export function isPromptText(text: string, fsPath: string, languageId: string): 
     }
   }
 
-  // Check for common prompt headers
+  // Check for common prompt headers and system prompt openers
   const promptHeaders = [
     /^#+ (system prompt|prompt|task|instructions|role)\b/im,
     /^(system|user|assistant):/im
   ];
   if (promptHeaders.some(regex => regex.test(text))) {
+    return true;
+  }
+
+  // For role-based heuristics, only check the very beginning of the document
+  // to prevent matching rows in a table or arbitrary text halfway through a file.
+  const textPrefix = text.slice(0, 250).trimStart();
+  const prefixHeaders = [
+    /^you are (a|an|the)/im,
+    /^act as (a|an|the)/im
+  ];
+  if (prefixHeaders.some(regex => regex.test(textPrefix))) {
     return true;
   }
 

@@ -45,12 +45,27 @@ export class DiagnosticsProvider implements vscode.Disposable {
           this.debounceTimers.delete(key);
         }
       }),
+      vscode.workspace.onDidChangeConfiguration(e => {
+        if (e.affectsConfiguration('promptguide.enableDiagnostics')) {
+          const config = vscode.workspace.getConfiguration('promptguide');
+          if (!config.get<boolean>('enableDiagnostics', true)) {
+            this.collection.clear();
+          } else {
+            vscode.window.visibleTextEditors.forEach(editor => {
+              if (this.isSupported(editor.document)) {
+                this.scheduleAnalysis(editor.document);
+              }
+            });
+          }
+        }
+      })
     );
   }
 
   private isSupported(doc: vscode.TextDocument): boolean {
+    const config = vscode.workspace.getConfiguration('promptguide');
     return SUPPORTED_LANGUAGES.includes(doc.languageId) &&
-      this.config.get<boolean>('enableDiagnostics', true) &&
+      config.get<boolean>('enableDiagnostics', true) &&
       isPromptText(doc.getText(), doc.uri.fsPath, doc.languageId);
   }
 

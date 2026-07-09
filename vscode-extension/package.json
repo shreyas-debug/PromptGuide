@@ -2,7 +2,7 @@
   "name": "promptguide",
   "displayName": "PromptGuide — Prompt Optimizer",
   "description": "Optimize AI prompts for token efficiency. Inline linting, scoring, and rule-based refinement — no LLM calls from our side.",
-  "version": "1.0.4",
+  "version": "1.0.7",
   "publisher": "promptguide",
   "license": "UNLICENSED",
   "repository": {
@@ -24,7 +24,7 @@
     "optimization",
     "prompt engineering"
   ],
-  "icon": "media/icon16.png",
+  "icon": "media/icon128.png",
   "main": "./dist/extension.js",
   "activationEvents": [
     "onLanguage:markdown",
@@ -77,9 +77,13 @@
         "category": "PromptGuide"
       },
       {
-        "command": "promptguide.copyWholeFile",
-        "title": "PromptGuide: Copy Whole File & Open Panel",
+        "command": "promptguide.openFromFile",
+        "title": "PromptGuide: Evaluate & Optimize File",
         "category": "PromptGuide"
+      },
+      {
+        "command": "promptguide.copyWholeFile",
+        "title": "PromptGuide: Evaluate & Optimize File (Deprecated)"
       }
     ],
     "menus": {
@@ -182,6 +186,16 @@
           "type": "boolean",
           "default": true,
           "description": "Show estimated token count and API costs when hovering over highlighted selection text."
+        },
+        "promptguide.costGpt4o": {
+          "type": "number",
+          "default": 2.50,
+          "description": "Input cost per 1 million tokens for GPT-4o. Used for estimating hover costs."
+        },
+        "promptguide.costClaude": {
+          "type": "number",
+          "default": 3.00,
+          "description": "Input cost per 1 million tokens for Claude 3.5 Sonnet. Used for estimating hover costs."
         }
       }
     },

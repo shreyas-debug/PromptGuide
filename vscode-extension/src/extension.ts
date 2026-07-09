@@ -209,17 +209,23 @@ export function activate(context: vscode.ExtensionContext): void {
     })
   );
 
-  // Copy-whole-file command (invoked by status bar click or status bar menu option)
+  // Open-from-file command (invoked by status bar click)
   context.subscriptions.push(
-    vscode.commands.registerCommand('promptguide.copyWholeFile', async () => {
+    vscode.commands.registerCommand('promptguide.openFromFile', async () => {
       const editor = vscode.window.activeTextEditor;
       if (!editor) {
-        vscode.window.showWarningMessage('PromptGuide: No active editor to copy.');
+        vscode.window.showWarningMessage('PromptGuide: No active editor.');
         return;
       }
       const text = editor.document.getText();
-      await vscode.env.clipboard.writeText(text);
       panelManager.openPanel(text.trim());
+    })
+  );
+
+  // Deprecated alias for openFromFile to avoid breaking existing user keybindings
+  context.subscriptions.push(
+    vscode.commands.registerCommand('promptguide.copyWholeFile', async () => {
+      void vscode.commands.executeCommand('promptguide.openFromFile');
     })
   );
 
